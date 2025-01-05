@@ -70,7 +70,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % Legend has
             % Title.String
             % String
-            % pizza pizza pizza
+            % ice cream and cheese
 
             % Children
             isChildPresent = isprop(guiHandle, "Children") && ~isempty(guiHandle.Children);
