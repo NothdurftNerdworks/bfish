@@ -17,47 +17,22 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % BFishClass
 
         function isAttached = attach(obj, guiHandle)
-            isAxis = any(class(guiHandle) == [ ...
-                "matlab.ui.control.UIAxes", ...
-                'matlab.graphics.axis.Axes', ...
-                'matlab.graphics.axis.GeographicAxes', ...
-                'matlab.graphics.axis.PolarAxes']);
+            % create list of properties to look for, these can be 'normal'
+            % string properties or they can be "Text" objects ('matlab.graphics.primitive.Text')
+            textObjNames = ["Title", "Subtitle", "XLabel", "YLabel", "ZLabel", "LatitudeLabel", "LongitudeLabel"];
+            simpleNames = ["AltText", "Name", "Placeholder", "String", "Text", "Title", "Tooltip"];
+            propNames = unique(textObjNames, simpleNames);
 
-            if isAxis
-                % axis-related objects have "Text" objects
-                for objName = ["Title", "Subtitle", "XLabel", "YLabel", "ZLabel", "LatitudeLabel", "LongitudeLabel"]
-                    if isprop(guiHandle, objName)
-                        % add dynamic property
-                        bfPropName = "String_BF";
-                        dp = guiHandle.(objName).addprop(bfPropName);
-                        dp.SetObservable = true;
+            % process the possible properties
+            for propName = propNames
+                isPropPresent = isprop(guiHandle, propName);
+                if isPropPresent
+                    switch class(guiHandle.(propName))
+                        case 'matlab.graphics.primitive.Text'
+                            obj.hook(guiHandle.Text, "String");
 
-                        % add listener for change to dynamic property
-                        addlistener(guiHandle.(objName), bfPropName, 'PostSet', @obj.translate);
-
-                        % translate this component (by changing dev string, triggering
-                        % our recently attached listener
-                        guiHandle.(objName).String_BF = guiHandle.(objName).String;
-
-                    end
-
-                end
-
-            else
-                % other uicontrol and uicomponent have normal properties
-                for propName = ["AltText", "Name", "Placeholder", "String", "Text", "Title", "Tooltip"]
-                    if isprop(guiHandle, propName)
-                        % add dynamic property
-                        bfPropName = strcat(propName, "_BF");
-                        dp = guiHandle.addprop(bfPropName);
-                        dp.SetObservable = true;
-
-                        % add listener for change to dynamic property
-                        addlistener(guiHandle, bfPropName, 'PostSet', @obj.translate);
-
-                        % translate this component (by changing dev string, triggering
-                        % our recently attached listener
-                        guiHandle.(bfPropName) = guiHandle.(propName);
+                        otherwise
+                            obj.hook(guiHandle, propName)
 
                     end
 
@@ -65,12 +40,13 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             end
 
-            % recursively process all children & ContextMenu & Legend & Toolbar of guiHandle
+            % Legend has a title "Text" object and a regular "String"
+            isLegendPresent = isprop(guiHandle, "Legend") && ~isempty(guiHandle.Legend);
+            if isLegendPresent
+                obj.hook(guiHandle.Legend.Title, "String");
+                obj.hook(guiHandle.Legend, "String");
 
-            % Legend has
-            % Title.String
-            % String
-            % ice cream and cheese
+            end
 
             % Children
             isChildPresent = isprop(guiHandle, "Children") && ~isempty(guiHandle.Children);
@@ -82,27 +58,36 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             end
 
-            % Toolbar
-            isToolbarPresent = isprop(guiHandle, "Toolbar") && ~isempty(guiHandle.Toolbar);
-            if isToolbarPresent
-                for child = guiHandle.Toolbar.Children
-                    obj.attach(child);
+            % some properties can be objects that can have children of their own
+            propsWithChildren = ["Toolbar", "ContextMenu"];
+            for propWithChildren = propsWithChildren
+                isPropPresent = isprop(guiHandle, propWithChildren);
+                if isPropPresent
+                    for child = guiHandle.(propWithChildren).Children
+                        obj.attach(child);
 
-                end
-
-            end
-
-            % ContextMenu
-            isContextMenuPresent = isprop(guiHandle, "ContextMenu") && ~isempty(guiHandle.ContextMenu);
-            if isContextMenuPresent
-                for child = guiHandle.ContextMenu.Children
-                    obj.attach(child);
+                    end
 
                 end
 
             end
 
         end % attach
+
+        function hook(obj, guiHandle, propName)
+            % add dynamic property
+            bfPropName = strcat(propName, "_BF");
+            dp = guiHandle.addprop(bfPropName);
+            dp.SetObservable = true;
+
+            % add listener for change to dynamic property
+            addlistener(guiHandle, bfPropName, 'PostSet', @obj.translate);
+
+            % translate this component (by changing dev string, triggering
+            % our recently attached listener
+            guiHandle.(bfPropName) = guiHandle.(propName);
+
+        end % hook
 
         function translate(obj, src, eventData)
             % https://www.mathworks.com/help/matlab/ref/matlab.ui.control.uicontrol-properties.html?searchHighlight=uicontrol&s_tid=srchtitle_support_results_2_uicontrol
@@ -115,18 +100,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % 4. Categorical array:                 categorical({'one','two','three'})
             % 5. Pipe-delimited row vector:         'One|Two|Three'
 
-
-
-
-
-
-
-
-
-
-
-
-            
 
         end % translate
 
