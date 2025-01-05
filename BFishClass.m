@@ -81,7 +81,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             dp.SetObservable = true;
 
             % add listener for change to dynamic property
-            addlistener(guiHandle, bfPropName, 'PostSet', @obj.translate);
+            addlistener(guiHandle, bfPropName, 'PostSet', @obj.responsder);
 
             % translate this component (by changing dev string, triggering
             % our recently attached listener
@@ -89,7 +89,16 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % hook
 
-        function translate(obj, src, eventData)
+        function responsder(obj, src, eventData)
+            bfPropName = src.Name;
+            propName = regexprep(bfPropName, '_BF$', '');
+            guiHandle = eventData.AffectedObject;
+
+            guiHandle.(propName) = obj.translate(guiHandle.(bfPropName));
+
+        end % responder
+
+        function outString = translate(obj, inString)
             % https://www.mathworks.com/help/matlab/ref/matlab.ui.control.uicontrol-properties.html?searchHighlight=uicontrol&s_tid=srchtitle_support_results_2_uicontrol
             % https://www.mathworks.com/help/matlab/characters-and-strings.html
 
@@ -100,19 +109,37 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % 4. Categorical array:                 categorical({'one','two','three'})
             % 5. Pipe-delimited row vector:         'One|Two|Three'
             
-            try
-                bfPropName = src.Name;
-                propName = bfPropName(1:end-3);
-                devString = eventData.AffectedObject.(bfPropName);
+            try % to process inString
+                switch(class(inString))
+                    case 'char'
+                        cells = strsplit(inString, '|');
 
-                eventData.AffectedObject.(propName) = "dummytext";
+                    case 'cell'
 
-            catch
-                % fail gracefully
-                eventData.AffectedObject.(propName) = eventData.AffectedObject.(bfPropName);
+                    case 'string'
+
+                    case 'categorical'
+
+                end
+
+            catch % fail gracefully - copy inString to outString
+                outString = inString;
 
             end
 
+            function [leadingWhitespace, mainString, trailingWhitespace] = preservepadding(inputString)
+                % Define the regular expression pattern
+                pattern = '^(\s*)(\S.*?\S|\S?)(\s*)$';
+
+                % Apply the regular expression
+                tokens = regexp(inputString, pattern, "tokens");
+
+                % Extract the matched groups
+                leadingWhitespace = tokens{1}{1};
+                mainString = tokens{1}{2};
+                trailingWhitespace = tokens{1}{3};
+
+            end
 
         end % translate
 
