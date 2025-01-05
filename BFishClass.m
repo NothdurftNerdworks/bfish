@@ -98,7 +98,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % responder
 
-        function outString = translate(obj, inString)
+        function outText = translate(obj, inText)
             % https://www.mathworks.com/help/matlab/ref/matlab.ui.control.uicontrol-properties.html?searchHighlight=uicontrol&s_tid=srchtitle_support_results_2_uicontrol
             % https://www.mathworks.com/help/matlab/characters-and-strings.html
 
@@ -109,21 +109,31 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % 4. Categorical array:                 categorical({'one','two','three'})
             % 5. Pipe-delimited row vector:         'One|Two|Three'
             
-            try % to process inString
-                switch(class(inString))
-                    case 'char'
-                        cells = strsplit(inString, '|');
+            try % to process inText
+                switch (class(inText))
+                    case 'char' % char vector & pipe-delimited row vector
+                        cells = strsplit(inText, '|');
+                        for thisCell = cells
+                            % * do stuff *
+                        end
+                        outText = strjoin(cells, '|');
 
-                    case 'cell'
+                    case 'cell' % cell array of char vector
+                        for thisCell = inText
+                            % * do stuff *
+                        end
 
-                    case 'string'
+                    case 'string' % string array
+                        for thisText = inText
+                            % * do stuff *
+                        end
 
                     case 'categorical'
 
                 end
 
             catch % fail gracefully - copy inString to outString
-                outString = inString;
+                outText = inText;
 
             end
 
