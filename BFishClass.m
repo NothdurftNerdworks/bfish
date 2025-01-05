@@ -21,7 +21,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % string properties or they can be "Text" objects ('matlab.graphics.primitive.Text')
             textObjNames = ["Title", "Subtitle", "XLabel", "YLabel", "ZLabel", "LatitudeLabel", "LongitudeLabel"];
             simpleNames = ["AltText", "Name", "Placeholder", "String", "Text", "Title", "Tooltip"];
-            propNames = unique(textObjNames, simpleNames);
+            propNames = unique([textObjNames, simpleNames]);
 
             % process the possible properties
             for propName = propNames
@@ -29,7 +29,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 if isPropPresent
                     switch class(guiHandle.(propName))
                         case 'matlab.graphics.primitive.Text'
-                            obj.hook(guiHandle.Text, "String");
+                            obj.hook(guiHandle.(propName), "String");
 
                         otherwise
                             obj.hook(guiHandle, propName)
@@ -99,6 +99,19 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % 3. String array:                      ["One" "Two" "Three"]
             % 4. Categorical array:                 categorical({'one','two','three'})
             % 5. Pipe-delimited row vector:         'One|Two|Three'
+            
+            try
+                bfPropName = src.Name;
+                propName = bfPropName(1:end-3);
+                devString = eventData.AffectedObject.(bfPropName);
+
+                eventData.AffectedObject.(propName) = "dummytext";
+
+            catch
+                % fail gracefully
+                eventData.AffectedObject.(propName) = eventData.AffectedObject.(bfPropName);
+
+            end
 
 
         end % translate
