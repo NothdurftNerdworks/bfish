@@ -3,8 +3,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     %   Detailed explanation goes here
     
     properties
-        listeners
-        LibraryTable
+        LibraryTable table = table
+        activeLanguage string = string([])
+        enableLibraryGrowth logical = false
+
+    end
+
+    properties (Dependent)
+        isLibraryLoaded
 
     end
     
@@ -15,6 +21,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             
 
         end % BFishClass
+
+        %% -----------------------------------------------------------------------------------------
+        function value = get.isLibraryLoaded(obj)
+            value = ~isempty(obj.LibraryTable);
+
+        end % get.isLibraryLoaded
 
         %% -----------------------------------------------------------------------------------------
         function loadlibrary(obj, libraryFile)
@@ -29,6 +41,13 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % LISTLANGUAGES  returns, as a string array, the list of languages in the loaded library
             %
 
+            if ~obj.isLibraryLoaded
+                languages = string([]);
+                return
+
+            else
+
+            end
 
         end % listlanguages
 
