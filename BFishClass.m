@@ -8,12 +8,15 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         LibraryTable table = table              % table used for 'translating' strings
         activeLanguage string = string([])      % the language (column) from the LibraryTable currently in use
 
-        defaultLanguageName string = "default"  % name used for column 1 when not otherwise specified in LibraryTable
-
     end
 
     properties (Dependent)
-        isLibraryLoaded
+        isLibraryLoaded % ??? is this necessary?
+
+    end
+
+    properties (Constant)
+        defaultLanguageName string = "default"  % name used for column 1 when not otherwise specified in LibraryTable
 
     end
 
@@ -27,16 +30,21 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function obj = BFishClass(libraryFilename)
             %BFISHCLASS Construct an instance of this class
             %   Detailed explanation goes here
-
             arguments
                 libraryFilename string = string([])
             end
 
+            % load library if file provided
             if ~isempty(libraryFilename)
-                obj.loadlibrary(libraryFilename)
+                obj.loadlibrary(libraryFilename);
 
             end
-            
+
+            % create default library if none available
+            if isempty(obj.LibraryTable)
+                obj.makenewlibrary;
+
+            end
 
         end % BFishClass
 
@@ -48,7 +56,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function isLoaded = loadlibrary(obj, libraryFilename, Options)
-            % LOADLIBRARY  loads the library file used for translation in to memory
+            % LOADLIBRARY loads the library file used for translation in to memory
             %
             arguments
                 obj BFishClass
@@ -75,6 +83,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 % load successful
                 % --- add logging here ---
+                notify(obj, NewLibrary)
                 isLoaded = true;
 
             catch % error when loading
@@ -100,7 +109,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function isSaved = savelibrary(obj, libraryFilename)
-            % SAVELIBRARY  saves the in memory translation table to the specified file
+            % SAVELIBRARY saves the in memory translation table to the specified file
             %
             arguments
                 obj BFishClass
@@ -137,14 +146,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function languages = listlanguages(obj)
-            % LISTLANGUAGES  returns, as a string array, the list of languages in the loaded library
+            % LISTLANGUAGES returns, as a string array, the list of languages in the loaded library
             %
 
-            if ~obj.isLibraryLoaded
+            if isempty(obj.LibraryTable)
                 languages = string([]);
-                return
 
             else
+                languages = string(obj.LibraryTable.Properties.VariableNames);
 
             end
 
@@ -152,7 +161,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function refreshgui(obj)
-            % REFRESHGUI  reprocess the attached GUI(s) with current library and active language
+            % REFRESHGUI reprocess the attached GUI(s) with current library and active language
             %
 
 
@@ -160,7 +169,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function isAttached = attach(obj, guiHandle)
-            % ATTACH  calls HOOK on relevant gui properties and recursively calls ATTACH on component children
+            % ATTACH calls HOOK on relevant gui properties and recursively calls ATTACH on component children
             %
 
             % create list of properties to look for, these can be 'normal'
@@ -222,7 +231,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function hook(obj, guiHandle, propName)
-            % HOOK  creates the dynamic property and adds a listener to enable on-the-fly translation
+            % HOOK creates the dynamic property and adds a listener to enable on-the-fly translation
             %
 
             % add dynamic property
@@ -241,7 +250,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function responder(obj, src, eventData)
-            % RESPONDER  called by listener events when a dynamic property value is changed
+            % RESPONDER called by listener events when a dynamic property value is changed
             %
 
             bfPropName = src.Name;
@@ -254,7 +263,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function outText = translate(obj, inText)
-            % TRANSLATE  uses input text as lookup key against loaded library to return output text
+            % TRANSLATE uses input text as lookup key against loaded library to return output text
             %
 
             % https://www.mathworks.com/help/matlab/ref/matlab.ui.control.uicontrol-properties.html?searchHighlight=uicontrol&s_tid=srchtitle_support_results_2_uicontrol
