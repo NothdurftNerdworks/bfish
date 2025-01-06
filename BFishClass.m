@@ -15,9 +15,18 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     end
     
     methods
-        function obj = BFishClass
+        function obj = BFishClass(libraryFilename)
             %BFISHCLASS Construct an instance of this class
             %   Detailed explanation goes here
+
+            arguments
+                libraryFilename string = string([])
+            end
+
+            if ~isempty(libraryFilename)
+                obj.loadlibrary(libraryFilename)
+
+            end
             
 
         end % BFishClass
@@ -29,7 +38,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % get.isLibraryLoaded
 
         %% -----------------------------------------------------------------------------------------
-        function loadlibrary(obj, libraryFile)
+        function loadlibrary(obj, libraryFilename)
             % LOADLIBRARY  loads the library file used for translation in to memory
             %   
 
