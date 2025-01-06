@@ -3,9 +3,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     %   Detailed explanation goes here
     
     properties
+        isActive logical = true
         LibraryTable table = table
         activeLanguage string = string([])
-        enableLibraryGrowth logical = false
 
     end
 
@@ -44,6 +44,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
 
         end % loadlibrary
+
+        %% -----------------------------------------------------------------------------------------
+        function savelibrary(obj, libraryFilename)
+            % SAVELIBRARY  saves the in memory translation table to the specified file
+            %
+
+
+        end % savelibrary
 
         %% -----------------------------------------------------------------------------------------
         function languages = listlanguages(obj)
