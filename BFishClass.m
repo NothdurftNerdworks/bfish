@@ -3,10 +3,10 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     %   Detailed explanation goes here
     
     properties (SetAccess = private)
-        isActive logical = true                 % logical, translates when true, pass-through when false
-        libraryFilename string = string([])     % source of current library, used for future load/save unless otherwise specified
-        LibraryTable table = table              % table used for 'translating' strings
-        activeLanguage string = string([])      % the language (column) from the LibraryTable currently in use
+        isActive logical        = true          % logical, translates when true, pass-through when false
+        libraryFilename string  = string([])    % source of current library, used for future load/save unless otherwise specified
+        LibraryTable table      = table         % table used for 'translating' strings
+        activeLanguage string   = string([])    % the language (column) from the LibraryTable currently in use
 
     end
 
@@ -16,7 +16,8 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     end
 
     properties (Constant)
-        defaultLanguageName string = "default"  % name used for column 1 when not otherwise specified in LibraryTable
+        defaultLanguageName string = "EN"       % name used for column 1 when not otherwise specified in LibraryTable
+        defaultLanguageDisc string = "Default"  % description for default language used in new LibraryTable
 
     end
 
@@ -55,12 +56,21 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % get.isLibraryLoaded
 
         %% -----------------------------------------------------------------------------------------
+        function makenewlibrary(obj)
+            % MAKENEWLIBRARY creates a new barebones library for building out new translations
+            %
+
+            obj.LibraryTable = table("Hello", VariableNames=[obj.defaultLanguageName]);
+
+        end % makenewlibrary
+
+        %% -----------------------------------------------------------------------------------------
         function isLoaded = loadlibrary(obj, libraryFilename, Options)
             % LOADLIBRARY loads the library file used for translation in to memory
             %
             arguments
                 obj BFishClass
-                libraryFilename mustBeText = obj.libraryFilename % use existing filename if none passed
+                libraryFilename {mustBeText} = obj.libraryFilename % use existing filename if none passed
                 Options.RefreshOnLoad (1,1) logical = true
             end
 
@@ -73,7 +83,15 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 assert(isFileAvailable, 'BFishClass:loadlibrary:noLibraryFile', 'Function loadlibrary requires a library filename.');
 
                 % pull in file
-                NewLibraryTable = readtable(libraryFilename);
+                NewLibraryTable = readtable(libraryFilename, ...
+                    "ReadVariableNames", true, ...
+                    "VariableNamingRule", "preserve", ...
+                    "TextType", "string");
+
+                % pull out descriptions
+                varDiscriptions = NewLibraryTable{1,:};
+                NewLibraryTable.Properties.VariableDescriptions = varDiscriptions;
+                NewLibraryTable(1,:) = [];
 
                 % any quality checks
 
@@ -83,19 +101,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 % load successful
                 % --- add logging here ---
-                notify(obj, NewLibrary)
+                notify(obj, "NewLibrary")
                 isLoaded = true;
 
             catch % error when loading
                 % notify error occurred
-                % --- add logging here ---
-
-                % drop current filename if it was unable to be loaded (maybe corrupt?)
-                isCurrentFileBad = libraryFilename == obj.libraryFilename;
-                if isCurrentFileBad
-                    obj.libraryFilename = string([]);
-
-                end       
+                % --- add logging here ---     
 
             end
 
@@ -113,7 +124,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             %
             arguments
                 obj BFishClass
-                libraryFilename mustBeText = obj.libraryFilename % use existing filename if none passed
+                libraryFilename {mustBeText} = obj.libraryFilename % use existing filename if none passed
             end
 
             % defaults
@@ -123,7 +134,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % generate name if none available
                 isNameNeeded = isempty(libraryFilename);
                 if isNameNeeded
-                    libraryFilename = strcat("bfishlibrary_", string(datetime("now", Format='yyyyMMdd_hhmm')));
+                    libraryFilename = strcat("bfishlibrary_", string(datetime("now", Format='yyyyMMdd_hhmm')), ".csv");
 
                 end
 
