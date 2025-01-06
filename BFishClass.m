@@ -4,7 +4,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     
     properties
         listeners
-        library
+        LibraryTable
 
     end
     
@@ -16,7 +16,27 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % BFishClass
 
+        %% -----------------------------------------------------------------------------------------
+        function loadlibrary(obj, libraryFile)
+            % LOADLIBRARY  loads the library file used for translation in to memory
+            %   
+
+
+        end % loadlibrary
+
+        %% -----------------------------------------------------------------------------------------
+        function languages = listlanguages(obj)
+            % LISTLANGUAGES  returns, as a string array, the list of languages in the loaded library
+            %
+
+
+        end % listlanguages
+
+        %% -----------------------------------------------------------------------------------------
         function isAttached = attach(obj, guiHandle)
+            % ATTACH  calls HOOK on relevant gui properties and recursively calls ATTACH on component children
+            %
+
             % create list of properties to look for, these can be 'normal'
             % string properties or they can be "Text" objects ('matlab.graphics.primitive.Text')
             textObjNames = ["Title", "Subtitle", "XLabel", "YLabel", "ZLabel", "LatitudeLabel", "LongitudeLabel"];
@@ -74,14 +94,18 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % attach
 
+        %% -----------------------------------------------------------------------------------------
         function hook(obj, guiHandle, propName)
+            % HOOK  creates the dynamic property and adds a listener to enable on-the-fly translation
+            %
+
             % add dynamic property
             bfPropName = strcat(propName, "_BF");
             dp = guiHandle.addprop(bfPropName);
             dp.SetObservable = true;
 
             % add listener for change to dynamic property
-            addlistener(guiHandle, bfPropName, 'PostSet', @obj.responsder);
+            addlistener(guiHandle, bfPropName, 'PostSet', @obj.responder);
 
             % translate this component (by changing dev string, triggering
             % our recently attached listener
@@ -89,7 +113,11 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % hook
 
-        function responsder(obj, src, eventData)
+        %% -----------------------------------------------------------------------------------------
+        function responder(obj, src, eventData)
+            % RESPONDER  called by listener events when a dynamic property value is changed
+            %
+
             bfPropName = src.Name;
             propName = regexprep(bfPropName, '_BF$', '');
             guiHandle = eventData.AffectedObject;
@@ -98,7 +126,11 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % responder
 
+        %% -----------------------------------------------------------------------------------------
         function outText = translate(obj, inText)
+            % TRANSLATE  uses input text as lookup key against loaded library to return output text
+            %
+
             % https://www.mathworks.com/help/matlab/ref/matlab.ui.control.uicontrol-properties.html?searchHighlight=uicontrol&s_tid=srchtitle_support_results_2_uicontrol
             % https://www.mathworks.com/help/matlab/characters-and-strings.html
 
@@ -152,11 +184,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
         end % translate
-
-        function languages = listlanguages(obj)
-
-
-        end % listlanguages
         
     end
 
