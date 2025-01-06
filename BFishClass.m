@@ -1,16 +1,25 @@
 classdef BFishClass < matlab.mixin.SetGetExactNames
-    %BFISHCLASS Summary of this class goes here
+    %BFISHCLASS A lightweight framework for internationalization of GUI and command-line strings.
     %   Detailed explanation goes here
     
-    properties
-        isActive logical = true
-        LibraryTable table = table
-        activeLanguage string = string([])
+    properties (SetAccess = private)
+        isActive logical = true                 % logical, translates when true, pass-through when false
+        libraryFilename string = string([])     % source of current library, used for future load/save unless otherwise specified
+        LibraryTable table = table              % table used for 'translating' strings
+        activeLanguage string = string([])      % the language (column) from the LibraryTable currently in use
+
+        defaultLanguageName string = "default"  % name used for column 1 when not otherwise specified in LibraryTable
 
     end
 
     properties (Dependent)
         isLibraryLoaded
+
+    end
+
+    events
+        NewLibrary  % a new library has been loaded, application may wish to refresh lists etc.
+        NewLanguage % a new language has been selected
 
     end
     
@@ -33,23 +42,76 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function value = get.isLibraryLoaded(obj)
-            value = ~isempty(obj.LibraryTable);
+            value = ~isempty(obj.libraryFilename);
 
         end % get.isLibraryLoaded
 
         %% -----------------------------------------------------------------------------------------
-        function loadlibrary(obj, libraryFilename)
+        function isLoaded = loadlibrary(obj, libraryFilename, Options)
             % LOADLIBRARY  loads the library file used for translation in to memory
-            %   
+            %
 
+            arguments
+                obj BFishClass
+                libraryFilename mustBeText = obj.libraryFilename % use existing filename if none passed
+                Options.RefreshOnLoad (1,1) logical = true
+            end
+
+            try % to load library in to memory
+                % determine which library to use
+                isFileAvailable = ~isempty(libraryFilename) && isfile(libraryFilename);
+                assert(isFileAvailable, 'BFishClass:loadlibrary:noLibraryFile', 'Function loadlibrary requires a library filename.');
+
+                % pull in file
+                NewLibraryTable = readtable(libraryFilename);
+
+                % any quality checks
+
+                % make the new library active
+                obj.LibraryTable = NewLibraryTable;
+                obj.libraryFilename = libraryFilename;
+                isLoaded = true;
+
+            catch % error when loading
+                % notify error occurred
+                % --- add logging here ---
+
+                % drop current filename if it was unable to be loaded (maybe corrupt?)
+                isCurrentFileBad = libraryFilename == obj.libraryFilename;
+                if isCurrentFileBad
+                    obj.libraryFilename = string([]);
+
+                end
+
+                % output
+                isLoaded = false;
+
+            end
+
+            % (optionally) refresh gui when loading new library
+            if isLoaded && Options.RefreshOnLoad
+                obj.refreshgui;
+
+            end
 
         end % loadlibrary
 
         %% -----------------------------------------------------------------------------------------
-        function savelibrary(obj, libraryFilename)
+        function isSaved = savelibrary(obj, libraryFilename)
             % SAVELIBRARY  saves the in memory translation table to the specified file
             %
 
+            arguments
+                obj BFishClass
+                libraryFilename mustBeText = obj.libraryFilename % use existing filename if none passed
+            end
+
+            try % to save out the file
+                assert()
+
+            catch % error when saving
+
+            end
 
         end % savelibrary
 
@@ -67,6 +129,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
         end % listlanguages
+
+        %% -----------------------------------------------------------------------------------------
+        function refreshgui(obj)
+            % REFRESHGUI  reprocess the attached GUI(s) with current library and active language
+            %
+
+
+        end % refreshgui
 
         %% -----------------------------------------------------------------------------------------
         function isAttached = attach(obj, guiHandle)
