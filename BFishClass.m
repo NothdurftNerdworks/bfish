@@ -12,11 +12,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
     properties (Dependent)
         isLibraryLoaded % ??? is this necessary?
+        localLanguageCode string                % system language code (if detectable)
 
     end
 
     properties (Constant)
-        defaultLanguageName string = "EN"       % name used for column 1 when not otherwise specified in LibraryTable
+        defaultLanguageCode string = "EN"       % name used for column 1 when not otherwise specified in LibraryTable
         defaultLanguageDisc string = "Default"  % description for default language used in new LibraryTable
 
     end
@@ -55,12 +56,31 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % get.isLibraryLoaded
 
+
+        %% -----------------------------------------------------------------------------------------
+        function languageCode = get.localLanguageCode(obj)
+            % get.localLanguageCode query the Java subsystem to determine local 2-letter language code.
+            %
+            try % to query subsystem
+                locale = java.util.Locale.getDefault();
+                languageCode = char(locale.getLanguage());
+
+            catch % use class default
+                languageCode = obj.defaultLanguageCode;
+
+            end
+
+            languageCode = string(upper(languageCode)); % formatting
+
+        end
+
         %% -----------------------------------------------------------------------------------------
         function makenewlibrary(obj)
             % MAKENEWLIBRARY creates a new barebones library for building out new translations
             %
-
-            obj.LibraryTable = table("Hello", VariableNames=[obj.defaultLanguageName]);
+            obj.LibraryTable = table("Hello", VariableNames=[obj.defaultLanguageCode]);
+            obj.LibraryTable.Properties.VariableDescriptions = obj.defaultLanguageDisc;
+            obj.activeLanguage = obj.defaultLanguageCode;
 
         end % makenewlibrary
 
@@ -98,6 +118,13 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % make the new library active
                 obj.LibraryTable = NewLibraryTable;
                 obj.libraryFilename = libraryFilename;
+
+                % determine active language
+                languages = obj.listlanguages;
+                isCurrentLanguageInLibrary = ~isempty(obj.activeLanguage) && ismember(obj.activeLanguage, languages);
+                if ~isCurrentLanguageInLibrary
+                    obj.activeLanguage = languages(1);
+                end
 
                 % load successful
                 % --- add logging here ---
@@ -138,8 +165,15 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 end
 
+                % pull out variable descriptions
+                DiscTable = table('Size', [0, width(obj.LibraryTable)], ...
+                    'VariableTypes', varfun(@class, obj.LibraryTable, 'OutputFormat', 'cell'), ...
+                    'VariableNames', obj.LibraryTable.Properties.VariableNames);
+                DiscTable(1,:) = obj.LibraryTable.Properties.VariableDescriptions;
+
                 % write out the table
-                writetable(obj.LibraryTable, libraryFilename)
+                OutTable = [DiscTable; obj.LibraryTable];
+                writetable(OutTable, libraryFilename)
 
                 % make this the active library filename
                 obj.libraryFilename = libraryFilename;
