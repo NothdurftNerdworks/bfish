@@ -50,12 +50,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function isLoaded = loadlibrary(obj, libraryFilename, Options)
             % LOADLIBRARY  loads the library file used for translation in to memory
             %
-
             arguments
                 obj BFishClass
                 libraryFilename mustBeText = obj.libraryFilename % use existing filename if none passed
                 Options.RefreshOnLoad (1,1) logical = true
             end
+
+            % defaults
+            isLoaded = false;
 
             try % to load library in to memory
                 % determine which library to use
@@ -70,6 +72,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % make the new library active
                 obj.LibraryTable = NewLibraryTable;
                 obj.libraryFilename = libraryFilename;
+
+                % load successful
+                % --- add logging here ---
                 isLoaded = true;
 
             catch % error when loading
@@ -81,10 +86,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 if isCurrentFileBad
                     obj.libraryFilename = string([]);
 
-                end
-
-                % output
-                isLoaded = false;
+                end       
 
             end
 
@@ -100,16 +102,34 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function isSaved = savelibrary(obj, libraryFilename)
             % SAVELIBRARY  saves the in memory translation table to the specified file
             %
-
             arguments
                 obj BFishClass
                 libraryFilename mustBeText = obj.libraryFilename % use existing filename if none passed
             end
 
+            % defaults
+            isSaved = false;
+
             try % to save out the file
-                assert()
+                % generate name if none available
+                isNameNeeded = isempty(libraryFilename);
+                if isNameNeeded
+                    libraryFilename = strcat("bfishlibrary_", string(datetime("now", Format='yyyyMMdd_hhmm')));
+
+                end
+
+                % write out the table
+                writetable(obj.LibraryTable, libraryFilename)
+
+                % make this the active library filename
+                obj.libraryFilename = libraryFilename;
+
+                % save successful
+                % --- add logging here ---
+                isSaved = true;
 
             catch % error when saving
+                % --- add logging here ---
 
             end
 
