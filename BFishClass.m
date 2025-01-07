@@ -198,7 +198,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function languages = listlanguages(obj)
             % LISTLANGUAGES returns, as a string array, the list of languages in the loaded library
             %
-
             if isempty(obj.LibraryTable)
                 languages = string([]);
 
@@ -350,6 +349,11 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function responder(obj, src, eventData)
             % RESPONDER called by listener events when a dynamic property value is changed
             %
+            arguments
+                obj BFishClass
+                src
+                eventData
+            end
 
             bfPropName = src.Name;
             propName = regexprep(bfPropName, '_BF$', '');
