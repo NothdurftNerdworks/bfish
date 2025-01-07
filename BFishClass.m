@@ -128,7 +128,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 % load successful
                 % --- add logging here ---
-                notify(obj, "NewLibrary")
                 isLoaded = true;
 
             catch % error when loading
@@ -140,6 +139,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % (optionally) refresh gui when loading new library
             if isLoaded && Options.RefreshOnLoad
                 obj.refreshgui;
+
+            end
+
+            % notify if successful
+            if isLoaded
+                notify(obj, "NewLibrary")
 
             end
 
@@ -203,6 +208,54 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
         end % listlanguages
+
+        %% -----------------------------------------------------------------------------------------
+        function isChanged = changelanguage(obj, newLangSelector, Options)
+            % CHANGELANGUAGE selects a new active language
+            %
+            arguments
+                obj BFishClass
+                newLangSelector
+                Options.RefreshOnLoad (1,1) logical = true
+            end
+
+            % defaults
+            isChanged = false;
+
+            % be flexible with the method of update
+            languages = obj.listlanguages;
+            nLanguages = numel(languages);
+            if isnumeric(newLangSelector)
+                isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
+                if isValidNumericChoice
+                    obj.activeLanguage = languages(newLangSelector);
+                    isChanged = true;
+
+                end
+
+            else
+                isValidTextChoice = ismember(newLangSelector, languages);
+                if isValidTextChoice
+                    obj.activeLanguage = newLangSelector;
+                    isChanged = true;
+
+                end
+
+            end
+
+            % (optionally) refresh gui when loading new library
+            if isChanged && Options.RefreshOnLoad
+                obj.refreshgui;
+
+            end
+
+            % notify if successful
+            if isChanged
+                notify(obj, "NewLanguage");
+
+            end
+
+        end % changelanguage
 
         %% -----------------------------------------------------------------------------------------
         function refreshgui(obj)
