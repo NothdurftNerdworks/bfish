@@ -7,7 +7,7 @@ Lightweight MATLAB framework to internationalize strings used in GUI and command
 ### Architecture
 
 ## Installation
-bfish is released as a MATLAB [Namespace Folder](https://www.mathworks.com/help/matlab/matlab_oop/namespaces.html) (aka Package Folder).
+**bfish** is released as a [MATLAB](https://matlab.mathworks.com/) [Namespace Folder](https://www.mathworks.com/help/matlab/matlab_oop/namespaces.html) (aka Package Folder).
 1. Download package *(Once released)*
 2. Unzip to folder of your choosing
 3. Copy the "+bfish" folder in to the base folder of your project
