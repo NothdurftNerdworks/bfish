@@ -7,7 +7,7 @@
 ### Architecture
 
 ### Scope & Limitations
-* Intended to translate the *developers* text in to the users language of choice. Deliberately avoids the 'Value' field from EditField and similar components that are modified by the *user*. 
+* Intended to translate the *developer's* text in to the user's language of choice. Deliberately avoids the 'Value' field from EditField and similar components that are modified by the *user*. 
 * Designed only for phrase matching & replacement - **bfish** does *not* detect intent or translate complex language structure.
 * Designed for text only - **bfish** does *not* attempt to alter numbers, dates.
 * Designed for minimal changes to the original GUI.
