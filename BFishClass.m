@@ -405,7 +405,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                             outWords(nOut) = outWord;
 
                         end
-                        outText = char(strjoin(outWords, '|'));
+                        outText = char(strjoin(outWords, '|')); % preserve input type
 
                     case 'cell' % cell array of char vector
                         for thisCell = inText
@@ -429,6 +429,15 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             return
 
             %% internal functions ------------------------------------------------------------------
+            function subStrings = splitstringontags(inputString)
+                % Regular expression to match either HTML tags or text
+                pattern = '(<[^>]+>)|([^<]+)';
+
+                % Use regexp to extract all parts (tags and text)
+                subStrings = regexp(inputString, pattern, 'match');
+
+            end
+            
             function [leadingWhitespace, mainString, trailingWhitespace] = preservepadding(inputString)
                 % Define the regular expression pattern
                 pattern = '^(\s*)(\S.*?\S|\S?)(\s*)$';
@@ -437,9 +446,15 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 tokens = regexp(inputString, pattern, "tokens");
 
                 % Extract the matched groups
-                leadingWhitespace = tokens{1}{1};
-                mainString = tokens{1}{2};
-                trailingWhitespace = tokens{1}{3};
+                matches = tokens{1}; % Extract the first match
+                leadingWhitespace = matches{1};
+                mainString = matches{2};
+                trailingWhitespace = matches{3};
+
+            end
+
+            function isTag = istag(inputString)
+                isTag = startsWith(inputString, '<') && endsWith(inputString, '>');
 
             end
 
