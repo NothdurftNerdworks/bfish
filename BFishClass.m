@@ -379,13 +379,33 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % 5. Pipe-delimited row vector:         'One|Two|Three'
             
             try % to process inText
+                % prep
+                wordList = obj.LibraryTable{:,1};
+
                 switch (class(inText))
                     case 'char' % char vector & pipe-delimited row vector
-                        cells = strsplit(inText, '|');
-                        for thisCell = cells
-                            % * do stuff *
+                        inWords = string(strsplit(inText, '|'));
+                        nOut = 0;
+                        for word = inWords
+                            idx = find(strcmp(word, wordList), 1);
+                            isInLibrary = ~isempty(idx);
+                            if isInLibrary % translate
+                                outWord = obj.LibraryTable{idx, obj.activeLanguage};
+                                if isempty(outWord) % active language has no replacement for this word
+                                    outWord = word;
+
+                                end
+
+                            else % append new word to library
+                                obj.appendlibrary(word);
+                                outWord = word;
+
+                            end
+                            nOut = nOut + 1;
+                            outWords(nOut) = outWord;
+
                         end
-                        outText = strjoin(cells, '|');
+                        outText = char(strjoin(outWords, '|'));
 
                     case 'cell' % cell array of char vector
                         for thisCell = inText
@@ -406,6 +426,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             end
 
+            return
+
+            %% internal functions ------------------------------------------------------------------
             function [leadingWhitespace, mainString, trailingWhitespace] = preservepadding(inputString)
                 % Define the regular expression pattern
                 pattern = '^(\s*)(\S.*?\S|\S?)(\s*)$';
@@ -421,6 +444,13 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
         end % translate
+
+        function appendlibrary(obj, newWord)
+            %% APPENDLIBRARY adds a new word to the LibraryTable
+            %
+
+
+        end % appendlibrary
         
     end
 
