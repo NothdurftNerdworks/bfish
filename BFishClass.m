@@ -385,8 +385,10 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 switch (class(inText))
                     case 'char' % char vector & pipe-delimited row vector
                         inString = string(inText);                                      % char to string
-                        outString = process(inString);                                  % process string
-                        outText = cell(outString);                                      % string to char
+                        inString = strsplit(inString, '|');                             % handle pipe-delimited
+                        outString = process(inString);                                  % process string array
+                        outString = strjoin(outString, '|');                            % redo pipe-delimeter
+                        outText = char(outString);                                      % string to char
 
                     case 'cell' % cell array of char vector
                         inStrArray = string(inText);                                    % cell array to string array
@@ -396,7 +398,8 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                     case 'string' % string array
                         outText = process(inText);                                      % process string array
 
-                    case 'categorical'
+                    case 'categorical' % pass-through
+                        outText = inText; % unsure if we can update the categorical
 
                 end
 
@@ -408,38 +411,29 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             return
 
             %% internal functions ------------------------------------------------------------------
-            function outString = translatestring(inString)
-                inWords = string(strsplit(inText, '|'));
-                nOut = 0;
-                for word = inWords
-                    idx = find(strcmp(word, wordList), 1);
-                    isInLibrary = ~isempty(idx);
-                    if isInLibrary % translate
-                        outWord = obj.LibraryTable{idx, obj.activeLanguage};
-                        if isempty(outWord) % active language has no replacement for this word
-                            outWord = word;
+            function strings = process(strings)
+                for wString = 1:numel(strings)
+                    words = splitstringontags(strings(wString));
+                    for wWord = 1:numel(words)
+                        if ~istag(words(wWord))
+                            [pre, main, post] = preservepadding(words(wWord));
+                            newMain = 
 
                         end
 
-                    else % append new word to library
-                        obj.appendlibrary(word);
-                        outWord = word;
-
                     end
-                    nOut = nOut + 1;
-                    outWords(nOut) = outWord;
+                    strings(wString) = strcat(words);
 
                 end
-                outText = char(strjoin(outWords, '|')); % preserve input type
 
             end
 
-            function subStrings = splitstringontags(inputString)
+            function words = splitstringontags(inputString)
                 % Regular expression to match either HTML tags or text
                 pattern = '(<[^>]+>)|([^<]+)';
 
                 % Use regexp to extract all parts (tags and text)
-                subStrings = regexp(inputString, pattern, 'match');
+                words = regexp(inputString, pattern, 'match');
 
             end
             
