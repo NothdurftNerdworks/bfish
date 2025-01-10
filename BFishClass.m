@@ -384,38 +384,17 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 switch (class(inText))
                     case 'char' % char vector & pipe-delimited row vector
-                        inWords = string(strsplit(inText, '|'));
-                        nOut = 0;
-                        for word = inWords
-                            idx = find(strcmp(word, wordList), 1);
-                            isInLibrary = ~isempty(idx);
-                            if isInLibrary % translate
-                                outWord = obj.LibraryTable{idx, obj.activeLanguage};
-                                if isempty(outWord) % active language has no replacement for this word
-                                    outWord = word;
-
-                                end
-
-                            else % append new word to library
-                                obj.appendlibrary(word);
-                                outWord = word;
-
-                            end
-                            nOut = nOut + 1;
-                            outWords(nOut) = outWord;
-
-                        end
-                        outText = char(strjoin(outWords, '|')); % preserve input type
+                        inString = string(inText);                                      % char to string
+                        outString = process(inString);                                  % process string
+                        outText = cell(outString);                                      % string to char
 
                     case 'cell' % cell array of char vector
-                        for thisCell = inText
-                            % * do stuff *
-                        end
+                        inStrArray = string(inText);                                    % cell array to string array
+                        outStrArray = process(inStrArray);                              % process string array
+                        outText = arrayfun(@char, outStrArray, 'UniformOutput', false); % string array to cell array
 
                     case 'string' % string array
-                        for thisText = inText
-                            % * do stuff *
-                        end
+                        outText = process(inText);                                      % process string array
 
                     case 'categorical'
 
@@ -429,6 +408,32 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             return
 
             %% internal functions ------------------------------------------------------------------
+            function outString = translatestring(inString)
+                inWords = string(strsplit(inText, '|'));
+                nOut = 0;
+                for word = inWords
+                    idx = find(strcmp(word, wordList), 1);
+                    isInLibrary = ~isempty(idx);
+                    if isInLibrary % translate
+                        outWord = obj.LibraryTable{idx, obj.activeLanguage};
+                        if isempty(outWord) % active language has no replacement for this word
+                            outWord = word;
+
+                        end
+
+                    else % append new word to library
+                        obj.appendlibrary(word);
+                        outWord = word;
+
+                    end
+                    nOut = nOut + 1;
+                    outWords(nOut) = outWord;
+
+                end
+                outText = char(strjoin(outWords, '|')); % preserve input type
+
+            end
+
             function subStrings = splitstringontags(inputString)
                 % Regular expression to match either HTML tags or text
                 pattern = '(<[^>]+>)|([^<]+)';
