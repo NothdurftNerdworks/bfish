@@ -396,7 +396,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                         outText = process(inText);                                      % process string array
 
                     case 'categorical' % pass-through
-                        outText = inText; % unsure if we can update the categorical
+                        inStrArray = string(categories(inText));                        % get string array of category names
+                        outStrArray = process(inStrArray);                              % process string array
+                        outText = renamecats(inText, inStrArray, outStrArray);          % rename categories 
 
                 end
 
@@ -451,7 +453,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % Use regexp to extract all parts (tags and text)
                 words = regexp(inputString, pattern, 'match');
 
-            end
+            end % splitstringontags
             
             function [leadingWhitespace, mainString, trailingWhitespace] = preservepadding(inputString)
                 % Define the regular expression pattern
@@ -466,12 +468,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 mainString = matches{2};
                 trailingWhitespace = matches{3};
 
-            end
+            end % preservepadding
 
             function isTag = istag(inputString)
                 isTag = startsWith(inputString, '<') && endsWith(inputString, '>');
 
-            end
+            end % istag
 
         end % translate
 
