@@ -3,22 +3,22 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     %   Detailed explanation goes here
     
     properties (SetAccess = private)
-        isActive logical        = true          % logical, translates when true, pass-through when false
-        libraryFilename string  = string([])    % source of current library, used for future load/save unless otherwise specified
-        LibraryTable table      = table         % table used for 'translating' strings
-        activeLanguage string   = string([])    % the language (column) from the LibraryTable currently in use
+        isActive logical            = true          % logical, translates when true, pass-through when false
+        libraryFilename string      = string([])    % source of current library, used for future load/save unless otherwise specified
+        LibraryTable table          = table         % table used for 'translating' strings
+        activeLanguageCode string   = string([])    % the language (column) from the LibraryTable currently in use
 
     end
 
     properties (Dependent)
         isLibraryLoaded % ??? is this necessary?
-        localLanguageCode string                % system language code (if detectable)
+        localLanguageCode string                    % system language code (if detectable)
 
     end
 
     properties (Constant)
-        defaultLanguageCode string = "EN"       % name used for column 1 when not otherwise specified in LibraryTable
-        defaultLanguageDisc string = "Default"  % description for default language used in new LibraryTable
+        defaultLanguageCode string  = "EN"          % name used for column 1 when not otherwise specified in LibraryTable
+        defaultLanguageDisc string  = "Default"     % description for default language used in new LibraryTable
 
     end
 
@@ -75,12 +75,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end
 
         %% -----------------------------------------------------------------------------------------
-        function makenewlibrary(obj)
+        function isMade = makenewlibrary(obj)
             % MAKENEWLIBRARY creates a new barebones library for building out new translations
             %
             obj.LibraryTable = table("Hello", VariableNames=[obj.defaultLanguageCode]);
             obj.LibraryTable.Properties.VariableDescriptions = obj.defaultLanguageDisc;
-            obj.activeLanguage = obj.defaultLanguageCode;
+            obj.activeLanguageCode = obj.defaultLanguageCode;
+
+            isMade = true;
 
         end % makenewlibrary
 
@@ -121,9 +123,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 % determine active language
                 languages = obj.listlanguages;
-                isCurrentLanguageInLibrary = ~isempty(obj.activeLanguage) && ismember(obj.activeLanguage, languages);
+                isCurrentLanguageInLibrary = ~isempty(obj.activeLanguageCode) && ismember(obj.activeLanguageCode, languages);
                 if ~isCurrentLanguageInLibrary
-                    obj.activeLanguage = languages(1);
+                    obj.activeLanguageCode = languages(1);
                 end
 
                 % load successful
@@ -227,7 +229,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             if isnumeric(newLangSelector)
                 isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
                 if isValidNumericChoice
-                    obj.activeLanguage = languages(newLangSelector);
+                    obj.activeLanguageCode = languages(newLangSelector);
                     isChanged = true;
 
                 end
@@ -235,7 +237,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             else
                 isValidTextChoice = ismember(newLangSelector, languages);
                 if isValidTextChoice
-                    obj.activeLanguage = newLangSelector;
+                    obj.activeLanguageCode = newLangSelector;
                     isChanged = true;
 
                 end
@@ -424,9 +426,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                             isWordInLibrary = ~isempty(idx);
 
                             if isWordInLibrary % replace
-                                isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguage});
+                                isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguageCode});
                                 if isReplacementAvailable
-                                    replacementWord = obj.LibraryTable{idx, obj.activeLanguage};
+                                    replacementWord = obj.LibraryTable{idx, obj.activeLanguageCode};
                                     replacementPart = pre + replacementWord + post;
                                     parts(wPart) = replacementPart;
 
@@ -469,6 +471,26 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 trailingWhitespace = matches{3};
 
             end % preservepadding
+
+            function [word, capState] = preservecaps(word)
+                isUpper = strcmp(word, upper(word));
+                if isUpper
+                    capState = "upper";
+                else
+                    isLower = strcmp(word, lower(word));
+                    if isLower
+                        capState = "lower";
+                    else
+                        isFirstCap = ~isempty(regexp(word, '^[A-Z][a-z]*$', 'once'));
+                        if isFirstCap
+                            capState = "firstcap";
+                        else
+                            capState = "unknown";
+                        end
+                    end
+                end
+
+            end % preservecaps
 
             function isTag = istag(inputString)
                 isTag = startsWith(inputString, '<') && endsWith(inputString, '>');
