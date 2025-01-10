@@ -379,9 +379,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % 5. Pipe-delimited row vector:         'One|Two|Three'
             
             try % to process inText
-                % prep
-                wordList = obj.LibraryTable{:,1};
-
                 switch (class(inText))
                     case 'char' % char vector & pipe-delimited row vector
                         inString = string(inText);                                      % char to string
@@ -413,20 +410,39 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             %% internal functions ------------------------------------------------------------------
             function strings = process(strings)
                 for wString = 1:numel(strings)
-                    words = splitstringontags(strings(wString));
-                    for wWord = 1:numel(words)
-                        if ~istag(words(wWord))
-                            [pre, main, post] = preservepadding(words(wWord));
-                            newMain = 
+                    parts = splitstringontags(strings(wString));
+                    for wPart = 1:numel(parts)
+                        if ~istag(parts(wPart))
+                            part = parts(wPart);
+                            [pre, word, post] = preservepadding(part);
+
+                            % locate word in library
+                            wordList = obj.LibraryTable{:,1}; 
+                            idx = find(strcmp(word, wordList), 1);
+                            isWordInLibrary = ~isempty(idx);
+
+                            if isWordInLibrary % replace
+                                isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguage});
+                                if isReplacementAvailable
+                                    replacementWord = obj.LibraryTable{idx, obj.activeLanguage};
+                                    replacementPart = pre + replacementWord + post;
+                                    parts(wPart) = replacementPart;
+
+                                end
+
+                            else % append word to library
+                                obj.appendlibrary(word);
+
+                            end 
 
                         end
 
                     end
-                    strings(wString) = strcat(words);
+                    strings(wString) = strjoin(parts, "");
 
                 end
 
-            end
+            end % process
 
             function words = splitstringontags(inputString)
                 % Regular expression to match either HTML tags or text
