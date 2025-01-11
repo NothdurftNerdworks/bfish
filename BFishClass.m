@@ -399,7 +399,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function addword(obj, newWord)
-            % APPENDLIBRARY adds a new word to the LibraryTable
+            % ADDWORD adds a new word to the LibraryTable
             %
 
             % make row for new word that matches existing table
@@ -462,9 +462,10 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                         % act on word
                         if isWordInLibrary % replace
-                            isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguageCode});
-                            if isReplacementAvailable
-                                replacementWord = obj.LibraryTable{idx, obj.activeLanguageCode};
+                            proposedReplacement = obj.LibraryTable{idx, obj.activeLanguageCode};
+                            isReplacementValid = ~isempty(proposedReplacement) && ~ismissing(proposedReplacement);
+                            if isReplacementValid
+                                replacementWord = proposedReplacement;
                                 replacementWord = matchcase(replacementWord, word);
                                 replacementPart = pre + replacementWord + post;
                                 parts(wPart) = replacementPart;
