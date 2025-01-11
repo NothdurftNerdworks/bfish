@@ -117,7 +117,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             try % to load library in to memory
                 % determine which library to use
                 isFileAvailable = ~isempty(libraryFilename) && isfile(libraryFilename);
-                assert(isFileAvailable, 'BFishClass:loadlibrary:noLibraryFile', 'Function loadlibrary requires a library filename.');
+                assert(isFileAvailable, ...
+                    'BFishClass:loadlibrary:noLibraryFile', ...
+                    'Function loadlibrary requires the filename of an existing file.');
 
                 % pull in file
                 NewLibraryTable = readtable(libraryFilename, ...
@@ -399,7 +401,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function addword(obj, newWord)
-            % ADDWORD adds a new word to the LibraryTable
+            % ADDWORD adds a new word to the LibraryTable default language
             %
 
             % make row for new word that matches existing table
@@ -412,6 +414,32 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             obj.LibraryTable = [obj.LibraryTable; WordTable];
 
         end % addword
+
+        %% -----------------------------------------------------------------------------------------
+        function addlanguage(obj, langCode, langDisc)
+            % ADDLANGUAGE
+            %
+            arguments
+                obj BFishClass
+                langCode {mustBeText}
+                langDisc {mustBeText}
+            end
+            % confirm language not present in library
+            isLangPresent = any(strcmp(langCode, obj.languages));
+            assert(~isLangPresent, ...
+                'BFishClass:addlanguage:langAlreadyExists', ...
+                sprintf('Cannot add a new language (%s) with the same name as existing language.', langCode))
+
+            % create single column table to match up with existing LibraryTable
+            LangTable = table('Size', [height(obj.LibraryTable), 1], ...
+                'VariableTypes', string("string"), ... % bug with table declaration expecting string array
+                'VariableNames', langCode);
+            LangTable.Properties.VariableDescriptions(langCode) = langDisc;
+
+            % merge new language table with active library
+            obj.LibraryTable = [obj.LibraryTable LangTable];
+
+        end % addlanguage
         
     end
 
