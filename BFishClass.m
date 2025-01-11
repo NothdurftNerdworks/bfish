@@ -422,13 +422,17 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                             % locate word in library
                             wordList = obj.LibraryTable{:,1}; 
-                            idx = find(strcmp(word, wordList), 1);
+                            idx = find(strcmp(word, wordList), 1); % search for exact word first
+                            if isempty(idx) % do case-insensitive search if no exact match
+                                idx = find(strcmpi(word, wordList), 1);
+                            end
                             isWordInLibrary = ~isempty(idx);
 
                             if isWordInLibrary % replace
                                 isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguageCode});
                                 if isReplacementAvailable
                                     replacementWord = obj.LibraryTable{idx, obj.activeLanguageCode};
+                                    replacementWord = matchcase(replacementWord, word);
                                     replacementPart = pre + replacementWord + post;
                                     parts(wPart) = replacementPart;
 
@@ -472,25 +476,25 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             end % preservepadding
 
-            function [word, capState] = preservecaps(word)
-                isUpper = strcmp(word, upper(word));
+            function word = matchcase(word, pattern)
+                isUpper = strcmp(pattern, upper(pattern));
                 if isUpper
-                    capState = "upper";
+                    word = upper(word);
                 else
-                    isLower = strcmp(word, lower(word));
+                    isLower = strcmp(pattern, lower(pattern));
                     if isLower
-                        capState = "lower";
+                        word = lower(word);
                     else
-                        isFirstCap = ~isempty(regexp(word, '^[A-Z][a-z]*$', 'once'));
+                        isFirstCap = ~isempty(regexp(pattern, '^[A-Z][a-z]*$', 'once'));
                         if isFirstCap
-                            capState = "firstcap";
-                        else
-                            capState = "unknown";
+                            word = upper(extractBefore(word,2)) + extractAfter(word,1);
                         end
+
                     end
+                    
                 end
 
-            end % preservecaps
+            end % matchcase
 
             function isTag = istag(inputString)
                 isTag = startsWith(inputString, '<') && endsWith(inputString, '>');
