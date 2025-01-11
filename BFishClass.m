@@ -13,6 +13,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     properties (Dependent)
         isLibraryLoaded % ??? is this necessary?
         localLanguageCode string                    % system language code (if detectable)
+        languages                                   % string array of languages in current library
 
     end
 
@@ -72,7 +73,21 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             languageCode = string(upper(languageCode)); % formatting
 
-        end
+        end % get.localLanguageCode
+
+        %% -----------------------------------------------------------------------------------------
+        function languages = get.languages(obj)
+            % LISTLANGUAGES returns, as a string array, the list of languages in the loaded library
+            %
+            if isempty(obj.LibraryTable)
+                languages = string([]);
+
+            else
+                languages = string(obj.LibraryTable.Properties.VariableNames);
+
+            end
+
+        end % get.languages
 
         %% -----------------------------------------------------------------------------------------
         function isMade = makenewlibrary(obj)
@@ -122,10 +137,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 obj.libraryFilename = libraryFilename;
 
                 % determine active language
-                languages = obj.listlanguages;
-                isCurrentLanguageInLibrary = ~isempty(obj.activeLanguageCode) && ismember(obj.activeLanguageCode, languages);
+                isCurrentLanguageInLibrary = ~isempty(obj.activeLanguageCode) && ismember(obj.activeLanguageCode, obj.languages);
                 if ~isCurrentLanguageInLibrary
-                    obj.activeLanguageCode = languages(1);
+                    obj.activeLanguageCode = obj.languages(1);
                 end
 
                 % load successful
@@ -197,20 +211,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % savelibrary
 
         %% -----------------------------------------------------------------------------------------
-        function languages = listlanguages(obj)
-            % LISTLANGUAGES returns, as a string array, the list of languages in the loaded library
-            %
-            if isempty(obj.LibraryTable)
-                languages = string([]);
-
-            else
-                languages = string(obj.LibraryTable.Properties.VariableNames);
-
-            end
-
-        end % listlanguages
-
-        %% -----------------------------------------------------------------------------------------
         function isChanged = changelanguage(obj, newLangSelector, Options)
             % CHANGELANGUAGE selects a new active language
             %
@@ -224,18 +224,17 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             isChanged = false;
 
             % be flexible with the method of update
-            languages = obj.listlanguages;
-            nLanguages = numel(languages);
+            nLanguages = numel(obj.languages);
             if isnumeric(newLangSelector)
                 isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
                 if isValidNumericChoice
-                    obj.activeLanguageCode = languages(newLangSelector);
+                    obj.activeLanguageCode = obj.languages(newLangSelector);
                     isChanged = true;
 
                 end
 
             else
-                isValidTextChoice = ismember(newLangSelector, languages);
+                isValidTextChoice = ismember(newLangSelector, obj.languages);
                 if isValidTextChoice
                     obj.activeLanguageCode = newLangSelector;
                     isChanged = true;
@@ -348,24 +347,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % hook
 
         %% -----------------------------------------------------------------------------------------
-        function responder(obj, src, eventData)
-            % RESPONDER called by listener events when a dynamic property value is changed
-            %
-            arguments
-                obj BFishClass
-                src
-                eventData
-            end
-
-            bfPropName = src.Name;
-            propName = regexprep(bfPropName, '_BF$', '');
-            guiHandle = eventData.AffectedObject;
-
-            guiHandle.(propName) = obj.translate(guiHandle.(bfPropName));
-
-        end % responder
-
-        %% -----------------------------------------------------------------------------------------
         function outText = translate(obj, inText)
             % TRANSLATE uses input text as lookup key against loaded library to return output text
             %
@@ -384,23 +365,26 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 switch (class(inText))
                     case 'char' % char vector & pipe-delimited row vector
                         inString = string(inText);                                      % char to string
-                        inString = strsplit(inString, '|');                             % handle pipe-delimited
-                        outString = process(inString);                                  % process string array
-                        outString = strjoin(outString, '|');                            % redo pipe-delimeter
+                        inStrArray = strsplit(inString, '|');                           % handle pipe-delimited
+                        outStrArray = obj.translatestrings(inStrArray);                              % *process string array*
+                        outString = strjoin(outStrArray, '|');                          % redo pipe-delimeter
                         outText = char(outString);                                      % string to char
 
                     case 'cell' % cell array of char vector
                         inStrArray = string(inText);                                    % cell array to string array
-                        outStrArray = process(inStrArray);                              % process string array
+                        outStrArray = obj.translatestrings(inStrArray);                              % *process string array*
                         outText = arrayfun(@char, outStrArray, 'UniformOutput', false); % string array to cell array
 
                     case 'string' % string array
-                        outText = process(inText);                                      % process string array
+                        outText = obj.translatestrings(inText);                                      % *process string array*
 
-                    case 'categorical' % pass-through
+                    case 'categorical' 
                         inStrArray = string(categories(inText));                        % get string array of category names
-                        outStrArray = process(inStrArray);                              % process string array
-                        outText = renamecats(inText, inStrArray, outStrArray);          % rename categories 
+                        outStrArray = obj.translatestrings(inStrArray);                              % *process string array*
+                        outText = renamecats(inText, inStrArray, outStrArray);          % rename categories
+
+                    otherwise % pass-through
+                        outText = inText; 
 
                 end
 
@@ -411,47 +395,95 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             return
 
-            %% internal functions ------------------------------------------------------------------
-            function strings = process(strings)
-                for wString = 1:numel(strings)
-                    parts = splitstringontags(strings(wString));
-                    for wPart = 1:numel(parts)
-                        if ~istag(parts(wPart))
-                            part = parts(wPart);
-                            [pre, word, post] = preservepadding(part);
+        end % translate
 
-                            % locate word in library
-                            wordList = obj.LibraryTable{:,1}; 
-                            idx = find(strcmp(word, wordList), 1); % search for exact word first
-                            if isempty(idx) % do case-insensitive search if no exact match
-                                idx = find(strcmpi(word, wordList), 1);
+        %% -----------------------------------------------------------------------------------------
+        function addword(obj, newWord)
+            % APPENDLIBRARY adds a new word to the LibraryTable
+            %
+
+            % make row for new word that matches existing table
+            WordTable = table('Size', [1, width(obj.LibraryTable)], ...
+                'VariableTypes', varfun(@class, obj.LibraryTable, 'OutputFormat', 'cell'), ...
+                'VariableNames', obj.LibraryTable.Properties.VariableNames);
+            WordTable(1,1) = {newWord};
+
+            % append to library
+            obj.LibraryTable = [obj.LibraryTable; WordTable];
+
+        end % addword
+        
+    end
+
+    methods (Access = private, Hidden = true, Sealed = true)
+        %% -----------------------------------------------------------------------------------------
+        function responder(obj, src, eventData)
+            % RESPONDER called by listener events when a dynamic property value is changed
+            %
+            arguments
+                obj BFishClass
+                src
+                eventData
+            end
+
+            bfPropName = src.Name;
+            propName = regexprep(bfPropName, '_BF$', '');
+            guiHandle = eventData.AffectedObject;
+
+            guiHandle.(propName) = obj.translate(guiHandle.(bfPropName));
+
+        end % responder
+
+        %% -----------------------------------------------------------------------------------------
+        function strings = translatestrings(obj, strings)
+            % PROCESS
+            %
+            % work on each string in the array
+            for wString = 1:numel(strings)
+                % break strings in to logical parts
+                parts = splitstringontags(strings(wString));
+
+                % work on each part
+                for wPart = 1:numel(parts)
+                    part = parts(wPart);
+
+                    % translate valid word candidates
+                    isTranslatable = ~istag(part);
+                    if isTranslatable
+                        [pre, word, post] = preservepadding(part);
+
+                        % locate word in library
+                        wordList = obj.LibraryTable{:,1};
+                        idx = find(strcmp(word, wordList), 1); % search for exact word first
+                        if isempty(idx) % do case-insensitive search if no exact match
+                            idx = find(strcmpi(word, wordList), 1);
+                        end
+                        isWordInLibrary = ~isempty(idx);
+
+                        % act on word
+                        if isWordInLibrary % replace
+                            isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguageCode});
+                            if isReplacementAvailable
+                                replacementWord = obj.LibraryTable{idx, obj.activeLanguageCode};
+                                replacementWord = matchcase(replacementWord, word);
+                                replacementPart = pre + replacementWord + post;
+                                parts(wPart) = replacementPart;
+
                             end
-                            isWordInLibrary = ~isempty(idx);
 
-                            if isWordInLibrary % replace
-                                isReplacementAvailable = ~isempty(obj.LibraryTable{idx, obj.activeLanguageCode});
-                                if isReplacementAvailable
-                                    replacementWord = obj.LibraryTable{idx, obj.activeLanguageCode};
-                                    replacementWord = matchcase(replacementWord, word);
-                                    replacementPart = pre + replacementWord + post;
-                                    parts(wPart) = replacementPart;
-
-                                end
-
-                            else % append word to library
-                                obj.appendlibrary(word);
-
-                            end 
+                        else % append word to library
+                            obj.addword(word);
 
                         end
 
                     end
-                    strings(wString) = strjoin(parts, "");
 
                 end
+                strings(wString) = strjoin(parts, "");
 
-            end % process
+            end
 
+            %% translatestrings: nested functions --------------------------------------------------
             function words = splitstringontags(inputString)
                 % Regular expression to match either HTML tags or text
                 pattern = '(<[^>]+>)|([^<]+)';
@@ -460,7 +492,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 words = regexp(inputString, pattern, 'match');
 
             end % splitstringontags
-            
+
             function [leadingWhitespace, mainString, trailingWhitespace] = preservepadding(inputString)
                 % Define the regular expression pattern
                 pattern = '^(\s*)(\S.*?\S|\S?)(\s*)$';
@@ -470,9 +502,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
                 % Extract the matched groups
                 matches = tokens{1}; % Extract the first match
-                leadingWhitespace = matches{1};
-                mainString = matches{2};
-                trailingWhitespace = matches{3};
+                leadingWhitespace = matches(1);
+                mainString = matches(2);
+                trailingWhitespace = matches(3);
 
             end % preservepadding
 
@@ -491,7 +523,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                         end
 
                     end
-                    
+
                 end
 
             end % matchcase
@@ -501,15 +533,8 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             end % istag
 
-        end % translate
+        end % translatestrings
 
-        function appendlibrary(obj, newWord)
-            %% APPENDLIBRARY adds a new word to the LibraryTable
-            %
-
-
-        end % appendlibrary
-        
     end
 
 end
