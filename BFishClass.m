@@ -449,7 +449,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             %   It *might* be worth adding in a call with Google API user/pass but that seems like overkill for occasional use.
 
             % ask user which language they want to translate to
-            requestedLang = input("Translate the library to what language? ","s");
+            requestedLang = input("Translate the library to what language? :","s");
 
             % open webpage
             url = strcat("https://translate.google.com/?", ...
@@ -462,7 +462,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             web(url);
 
             % parse results
-            googleResults = input("Copy & paste results from Google here. ", "s");
+            googleResults = input("Copy & paste results from Google here. :", "s");
             splitResults = strsplit(googleResults, "|");
 
             % add to library
