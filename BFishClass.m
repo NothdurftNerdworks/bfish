@@ -455,7 +455,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             url = strcat("https://translate.google.com/?", ...
                 "sl=", obj.LibraryTable.Properties.VariableNames{1}, ...
                 "&tl=", requestedLang, ...
-                "&text=", strjoin(obj.LibraryTable{:,1}, "%2C"), ...
+                "&text=", strjoin(obj.LibraryTable{:,1}, "%7C"), ...
                 "&op=translate");
 
             % prompt user to input results from webpage
@@ -463,7 +463,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             % parse results
             googleResults = input("Copy & paste results from Google here. ", "s");
-            splitResults = strsplit(googleResults, ", ");
+            splitResults = strsplit(googleResults, "|");
 
             % add to library
             isLangPresent = any(strcmp(requestedLang, obj.languages));
