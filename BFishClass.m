@@ -421,8 +421,8 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             %
             arguments
                 obj BFishClass
-                langCode {mustBeText}
-                langDisc {mustBeText}
+                langCode string {mustBeText}
+                langDisc string {mustBeText}
             end
             % confirm language not present in library
             isLangPresent = any(strcmp(langCode, obj.languages));
@@ -440,6 +440,39 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             obj.LibraryTable = [obj.LibraryTable LangTable];
 
         end % addlanguage
+
+        function askgoogle(obj)
+            % ASKGOOGLE query translate.google.com for a specified language
+            %   Auxilliary function to simplify adding new translations to the active library. 
+            % 
+            % NOTE: in principle this could be easily automated, but it would be using the free service in bad faith.
+            %   It *might* be worth adding in a call with Google API user/pass but that seems like overkill for occasional use.
+
+            % ask user which language they want to translate to
+            requestedLang = input("Translate the library to what language? ","s");
+
+            % open webpage
+            url = strcat("https://translate.google.com/?", ...
+                "sl=", obj.LibraryTable.Properties.VariableNames{1}, ...
+                "&tl=", requestedLang, ...
+                "&text=", strjoin(obj.LibraryTable{:,1}, "%2C"), ...
+                "&op=translate");
+
+            % prompt user to input results from webpage
+            web(url);
+
+            % parse results
+            googleResults = input("Copy & paste results from Google here. ", "s");
+            splitResults = strsplit(googleResults, ", ");
+
+            % add to library
+            isLangPresent = any(strcmp(requestedLang, obj.languages));
+            if ~isLangPresent
+                obj.addlanguage(requestedLang, requestedLang);
+            end
+            obj.LibraryTable{:, requestedLang} = splitResults';
+
+        end % askgoogle
         
     end
 
