@@ -1,5 +1,5 @@
 # bfish
-**bfish** is a Lightweight MATLAB framework to internationalize strings used in GUI and command-line applications.
+**bfish** is a lightweight framework to internationalize strings used in MATLAB GUI and command-line applications.
 
 ## Overview
 ### Problem Solved
@@ -25,4 +25,4 @@
 
 ### GUI
 
-
+testing
