@@ -4,6 +4,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     
     properties
         isActive logical            = true          % logical, translates when true, pass-through when false
+        ME MException               = MException.empty  % store last error that occurred for troubleshooting
 
     end
 
@@ -18,13 +19,11 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         localLanguage string                        % system language code (if detectable)
         languages string                            % string array of languages in current library
         activeLanguage string                       % the language (column) from the LibraryTable currently in use
-        ME MException                               % access last error that occurred for troubleshooting
 
     end
 
     properties (Access = private, Hidden = true)
-        thisActiveLanguage string   = string([])    % track the language in use internally
-        thisME MException           = MException.empty  % store last error that occurred for troubleshooting
+        thisActiveLanguage string   = string([])    % store the language in use internally
 
     end
 
@@ -68,16 +67,28 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function language = get.localLanguage(obj)
             % get.localLanguageCode query the Java subsystem to determine local 2-letter language code.
             %
+
             try % to query subsystem
                 locale = java.util.Locale.getDefault();
-                language = char(locale.getLanguage());
+                language = locale.getLanguage();
 
-            catch % use class default
-                language = obj.defaultLanguage;
+            catch err
+                % log error
+                obj.ME = err;
+
+                % recover
+                isTablePresent = ~isempty(obj.LibraryTable);
+                if isTablePresent % default to development language
+                    language = obj.languages(1);
+
+                else % no local language to use
+                    language = missing;
+
+                end
 
             end
 
-            language = string(upper(language)); % formatting
+            language = upper(string(language)); % formatting
 
         end % get.localLanguage
 
@@ -85,6 +96,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function languages = get.languages(obj)
             % LISTLANGUAGES returns, as a string array, the list of languages in the loaded library
             %
+
             if isempty(obj.LibraryTable)
                 languages = string([]);
 
@@ -97,54 +109,95 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function activeLang = get.activeLanguage(obj)
+            % GET.ACTIVELANGUAGE property get method to designate the language (column) of the LibraryTable to use
+            %   dependent property that returns value from private property 'thisActiveLanguage'
+
             activeLang = obj.thisActiveLanguage;
 
         end % get.activeLanguage(obj)
 
         %% -----------------------------------------------------------------------------------------
         function set.activeLanguage(obj, newLangSelector)
-            % defaults
-            isChanged = false;
+            % SET.ACTIVELANGUAGE property set method to designate the language (column) of the LibraryTable to use
+            %   needs access to other class properties so we designate as 'dependent' and implement a private
+            %   property 'thisActiveLanguage' for storing the value.
 
-            % be flexible with the method of update
-            nLanguages = numel(obj.languages);
-            if isnumeric(newLangSelector)
-                isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
-                if isValidNumericChoice
+            try % to decipher input and update language accordingly
+                % defaults
+                isChanged = false;
+
+                isNumber = all(isstrprop(newLangSelector, "digit"));
+                if isNumber
+
+                else
+                    isValidNameChoice = ismember(upper(newLangSelector), obj.languages);
+                    if isValidNameChoice
+
+                    else
+                        discIdx = find(strcmpi(newLangSelector, obj.LibraryTable.Properties.VariableDescriptions), 1);
+                        isValidDiscChoice = ~isempty(discIdx);
+                        if isValidDiscChoice
+                            obj.thisActiveLanguage = obj.languages(discIdx);
+                            isChanged = true;
+
+                        else
+
+                        end
+
+                    end
+
+                end
+
+
+                % be flexible with the method of update
+                nLanguages = numel(obj.languages);
+                if isnumeric(newLangSelector)
+                    isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
+                    assert(isValidNumericChoice, ...
+                        'BFishClass:set_activeLanguage:numberBeyondLimit', ...
+                        sprintf("Requested value: %d is outside LibraryTable range: [1 %d]", newLangSelector, nLanguages));
+
                     obj.thisActiveLanguage = obj.languages(newLangSelector);
                     isChanged = true;
 
-                end
+                else
+                    isValidTextChoice = ismember(upper(newLangSelector), obj.languages);
+                    assert(isValidTextChoice, ...
+                        'BFishClass:set_activeLanguage:langNotInLibrary', ...
+                        sprintf("Requested language: %s is not present in current LibraryTable", upper(newLangSelector)));
 
-            else
-                isValidTextChoice = ismember(newLangSelector, obj.languages);
-                if isValidTextChoice
-                    obj.thisActiveLanguage = newLangSelector;
+                    obj.thisActiveLanguage = upper(newLangSelector);
                     isChanged = true;
 
                 end
 
-            end
+                assert(isChanged, ...
+                    'BFishClass:set.activeLanguage:unableToSet', ...
+                    "Unable to set active language to value, could not decipher input");
 
-            % (optionally) refresh gui when loading new library
-            %{
-            if isChanged && Options.RefreshOnLoad
-                obj.refreshgui;
-
-            end
-            %}
-
-            % notify if successful
-            if isChanged
+                % notify if successful
                 notify(obj, "NewLanguage");
+
+            catch err % failure to update language
+                obj.ME = err;
 
             end
 
         end % set.activelanguage
 
         %% -----------------------------------------------------------------------------------------
+        function set.ME(obj, val)
+            % SET.ME property set method to enable notifications
+            %
+
+            obj.ME = val;
+            notify(obj, "SilentError");
+
+        end % set.ME
+
+        %% -----------------------------------------------------------------------------------------
         function isMade = makenewlibrary(obj)
-            % MAKENEWLIBRARY creates a new barebones library for building out new translations
+            % MAKENEWLIBRARY creates a new example library for building out new translations
             %
 
             % make the LibraryTable
@@ -223,9 +276,10 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % --- add logging here ---
                 isLoaded = true;
 
-            catch % error when loading
+            catch err % error when loading
                 % notify error occurred
-                % --- add logging here ---     
+                % --- add logging here ---
+                obj.ME = err;
 
             end
 
