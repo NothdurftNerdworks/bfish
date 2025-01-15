@@ -9,7 +9,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
     properties (SetAccess = private)
         libraryFilename string      = string([])    % source of current library, used for future load/save unless otherwise specified
-        LibraryTable table          = table         % table used for 'translating' strings 
+        LibraryTable table          = table         % table used for 'translating' strings             
 
     end
 
@@ -18,23 +18,20 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         localLanguage string                        % system language code (if detectable)
         languages string                            % string array of languages in current library
         activeLanguage string                       % the language (column) from the LibraryTable currently in use
-
-    end
-
-    properties (Constant)
-        defaultLanguageCode string  = "EN"          % name used for column 1 when not otherwise specified in LibraryTable
-        defaultLanguageDisc string  = "Default"     % description for default language used in new LibraryTable
+        ME MException                               % access last error that occurred for troubleshooting
 
     end
 
     properties (Access = private, Hidden = true)
         thisActiveLanguage string   = string([])    % track the language in use internally
+        thisME MException           = MException.empty  % store last error that occurred for troubleshooting
 
     end
 
     events
         NewLibrary  % a new library has been loaded, application may wish to refresh lists etc.
         NewLanguage % a new language has been selected
+        SilentError % occurrs when a new error is caught and our 'ME' property is updated
 
     end
     
@@ -97,6 +94,53 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
         end % get.languages
+
+        %% -----------------------------------------------------------------------------------------
+        function activeLang = get.activeLanguage(obj)
+            activeLang = obj.thisActiveLanguage;
+
+        end % get.activeLanguage(obj)
+
+        %% -----------------------------------------------------------------------------------------
+        function set.activeLanguage(obj, newLangSelector)
+            % defaults
+            isChanged = false;
+
+            % be flexible with the method of update
+            nLanguages = numel(obj.languages);
+            if isnumeric(newLangSelector)
+                isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
+                if isValidNumericChoice
+                    obj.thisActiveLanguage = obj.languages(newLangSelector);
+                    isChanged = true;
+
+                end
+
+            else
+                isValidTextChoice = ismember(newLangSelector, obj.languages);
+                if isValidTextChoice
+                    obj.thisActiveLanguage = newLangSelector;
+                    isChanged = true;
+
+                end
+
+            end
+
+            % (optionally) refresh gui when loading new library
+            %{
+            if isChanged && Options.RefreshOnLoad
+                obj.refreshgui;
+
+            end
+            %}
+
+            % notify if successful
+            if isChanged
+                notify(obj, "NewLanguage");
+
+            end
+
+        end % set.activelanguage
 
         %% -----------------------------------------------------------------------------------------
         function isMade = makenewlibrary(obj)
