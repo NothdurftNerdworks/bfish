@@ -18,7 +18,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         isLibraryLoaded % ??? is this necessary?
         localLanguage string                        % system language code (if detectable)
         languages string                            % string array of languages in current library
-        activeLanguage string                       % the language (column) from the LibraryTable currently in use
+        activeLanguage string                       % the language (column) from the LibraryTable currently in use (untyped for flexibility)
 
     end
 
@@ -126,32 +126,10 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % defaults
                 isChanged = false;
 
-                isNumber = all(isstrprop(newLangSelector, "digit"));
+                isNumber = isnumeric(newLangSelector) || all(isstrprop(newLangSelector, "digit"));
                 if isNumber
-
-                else
-                    isValidNameChoice = ismember(upper(newLangSelector), obj.languages);
-                    if isValidNameChoice
-
-                    else
-                        discIdx = find(strcmpi(newLangSelector, obj.LibraryTable.Properties.VariableDescriptions), 1);
-                        isValidDiscChoice = ~isempty(discIdx);
-                        if isValidDiscChoice
-                            obj.thisActiveLanguage = obj.languages(discIdx);
-                            isChanged = true;
-
-                        else
-
-                        end
-
-                    end
-
-                end
-
-
-                % be flexible with the method of update
-                nLanguages = numel(obj.languages);
-                if isnumeric(newLangSelector)
+                    newLangSelector = str2double(newLangSelector);
+                    nLanguages = numel(obj.languages);
                     isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
                     assert(isValidNumericChoice, ...
                         'BFishClass:set_activeLanguage:numberBeyondLimit', ...
@@ -160,23 +138,34 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                     obj.thisActiveLanguage = obj.languages(newLangSelector);
                     isChanged = true;
 
-                else
-                    isValidTextChoice = ismember(upper(newLangSelector), obj.languages);
-                    assert(isValidTextChoice, ...
-                        'BFishClass:set_activeLanguage:langNotInLibrary', ...
-                        sprintf("Requested language: %s is not present in current LibraryTable", upper(newLangSelector)));
+                else % check against library variable names
+                    isValidNameChoice = ismember(upper(newLangSelector), obj.languages);
+                    if isValidNameChoice
+                        obj.thisActiveLanguage = upper(newLangSelector);
+                        isChanged = true;
 
-                    obj.thisActiveLanguage = upper(newLangSelector);
-                    isChanged = true;
+                    else % check library variable descriptions
+                        discIdx = find(strcmpi(newLangSelector, obj.LibraryTable.Properties.VariableDescriptions), 1);
+                        isValidDiscChoice = ~isempty(discIdx);
+                        if isValidDiscChoice
+                            obj.thisActiveLanguage = obj.languages(discIdx);
+                            isChanged = true;
+
+                        else % we are unable to change
+                            assert(isNumber || isValidNameChoice || isValidDiscChoice, ...
+                                'BFishClass:set_activeLanguage:langNotInLibrary', ...
+                                sprintf("Requested language: %s is not present in current LibraryTable", newLangSelector));
+
+                        end
+
+                    end
 
                 end
 
-                assert(isChanged, ...
-                    'BFishClass:set.activeLanguage:unableToSet', ...
-                    "Unable to set active language to value, could not decipher input");
-
                 % notify if successful
-                notify(obj, "NewLanguage");
+                if isChanged
+                    notify(obj, "NewLanguage");
+                end
 
             catch err % failure to update language
                 obj.ME = err;
