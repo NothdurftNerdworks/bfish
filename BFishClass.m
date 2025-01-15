@@ -2,8 +2,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     %BFISHCLASS A lightweight framework for internationalization of GUI and command-line strings.
     %   Detailed explanation goes here
     
-    properties (SetAccess = private)
+    properties
         isActive logical            = true          % logical, translates when true, pass-through when false
+
+    end
+
+    properties (SetAccess = private)
         libraryFilename string      = string([])    % source of current library, used for future load/save unless otherwise specified
         LibraryTable table          = table         % table used for 'translating' strings
         activeLanguageCode string   = string([])    % the language (column) from the LibraryTable currently in use
@@ -20,6 +24,11 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     properties (Constant)
         defaultLanguageCode string  = "EN"          % name used for column 1 when not otherwise specified in LibraryTable
         defaultLanguageDisc string  = "Default"     % description for default language used in new LibraryTable
+
+    end
+
+    properties (Access = private, Hidden = true)
+        thisActiveLanguage string   = string([])    % track the language in use internally
 
     end
 
