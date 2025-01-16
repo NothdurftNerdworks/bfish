@@ -4,13 +4,14 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     
     properties
         isActive logical            = true          % logical, translates when true, pass-through when false
-        ME MException               = MException.empty  % store last error that occurred for troubleshooting
+        refreshOnUpdate logical     = true          % logical, retranslate known GUIs on change when true
 
     end
 
     properties (SetAccess = private)
         libraryFilename string      = string([])    % source of current library, used for future load/save unless otherwise specified
-        LibraryTable table          = table         % table used for 'translating' strings             
+        LibraryTable table          = table         % table used for 'translating' strings
+        ME MException               = MException.empty  % store last error that occurred for troubleshooting
 
     end
 
@@ -24,6 +25,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
     properties (Access = private, Hidden = true)
         thisActiveLanguage string   = string([])    % store the language in use internally
+        knownRootHandles handle     = handle([])    % store handle to root gui objects we've been passed
+        newLanguageListener event.listener
+        newLibraryListener event.listener
 
     end
 
@@ -50,9 +54,13 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             % create default library if none available
             if isempty(obj.LibraryTable)
-                obj.makenewlibrary;
+                obj.makedefaultlibrary;
 
             end
+
+            % activate listeners
+            obj.newLanguageListener = addlistener(obj, "NewLanguage", @(src,evnt)obj.refreshgui);
+            obj.newLibraryListener = addlistener(obj, "NewLibrary", @(src,evnt)obj.refreshgui);
 
         end % BFishClass
 
@@ -193,7 +201,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % set.ME
 
         %% -----------------------------------------------------------------------------------------
-        function isMade = makenewlibrary(obj)
+        function isMade = makedefaultlibrary(obj)
             % MAKENEWLIBRARY creates a new example library for building out new translations
             %
 
@@ -224,16 +232,15 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % outcome
             isMade = true;
 
-        end % makenewlibrary
+        end % makedefaultlibrary
 
         %% -----------------------------------------------------------------------------------------
-        function isLoaded = loadlibrary(obj, libraryFilename, Options)
+        function isLoaded = loadlibrary(obj, libraryFilename)
             % LOADLIBRARY loads the library file used for translation in to memory
             %
             arguments
                 obj BFishClass
                 libraryFilename {mustBeText} = obj.libraryFilename % use existing filename if none passed
-                Options.RefreshOnLoad (1,1) logical = true
             end
 
             % defaults
@@ -266,28 +273,18 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % determine active language
                 isCurrentLanguageInLibrary = ~isempty(obj.activeLanguage) && ismember(obj.activeLanguage, obj.languages);
                 if ~isCurrentLanguageInLibrary
-                    obj.activeLanguage = obj.languages(1);
+                    obj.thisActiveLanguage = obj.languages(1); % set private property to avoid public set method (& event/listener)
+
                 end
 
                 % load successful
                 % --- add logging here ---
                 isLoaded = true;
+                notify(obj, "NewLibrary")
 
             catch err % error when loading
                 % notify error occurred
                 obj.ME = err;
-
-            end
-
-            % (optionally) refresh gui when loading new library
-            if isLoaded && Options.RefreshOnLoad
-                obj.refreshgui;
-
-            end
-
-            % notify if successful
-            if isLoaded
-                notify(obj, "NewLibrary")
 
             end
 
@@ -330,65 +327,20 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % --- add logging here ---
                 isSaved = true;
 
-            catch % error when saving
+            catch err % error when saving
                 % --- add logging here ---
+                obj.ME = err;
 
             end
 
         end % savelibrary
 
         %% -----------------------------------------------------------------------------------------
-        function isChanged = changelanguage(obj, newLangSelector, Options)
-            % CHANGELANGUAGE selects a new active language
-            %
-            arguments
-                obj BFishClass
-                newLangSelector
-                Options.RefreshOnLoad (1,1) logical = true
-            end
-
-            % defaults
-            isChanged = false;
-
-            % be flexible with the method of update
-            nLanguages = numel(obj.languages);
-            if isnumeric(newLangSelector)
-                isValidNumericChoice = newLangSelector >= 1 && newLangSelector <= nLanguages;
-                if isValidNumericChoice
-                    obj.activeLanguage = obj.languages(newLangSelector);
-                    isChanged = true;
-
-                end
-
-            else
-                isValidTextChoice = ismember(newLangSelector, obj.languages);
-                if isValidTextChoice
-                    obj.activeLanguage = newLangSelector;
-                    isChanged = true;
-
-                end
-
-            end
-
-            % (optionally) refresh gui when loading new library
-            if isChanged && Options.RefreshOnLoad
-                obj.refreshgui;
-
-            end
-
-            % notify if successful
-            if isChanged
-                notify(obj, "NewLanguage");
-
-            end
-
-        end % changelanguage
-
-        %% -----------------------------------------------------------------------------------------
         function refreshgui(obj)
             % REFRESHGUI reprocess the attached GUI(s) with current library and active language
             %
 
+            disp('REFRESH GUI CALLED!')
 
         end % refreshgui
 
