@@ -459,17 +459,23 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % HOOK creates the dynamic property and adds a listener to enable on-the-fly translation
             %
 
-            % add dynamic property
+            % confirm hook needed
             bfPropName = strcat(propName, "_BF");
-            dp = guiHandle.addprop(bfPropName);
-            dp.SetObservable = true;
+            isHookPresent = isprop(guiHandle, bfPropName);
 
-            % add listener for change to dynamic property
-            addlistener(guiHandle, bfPropName, 'PostSet', @obj.responder);
+            if ~isHookPresent % hook
+                % add dynamic property
+                dp = guiHandle.addprop(bfPropName);
+                dp.SetObservable = true;
 
-            % translate this component (by changing dev string, triggering
-            % our recently attached listener
-            guiHandle.(bfPropName) = guiHandle.(propName);
+                % add listener for change to dynamic property
+                addlistener(guiHandle, bfPropName, 'PostSet', @obj.responder);
+
+                % translate this component (by changing dev string, triggering
+                % our recently attached listener
+                guiHandle.(bfPropName) = guiHandle.(propName);
+
+            end
 
         end % hook
 
