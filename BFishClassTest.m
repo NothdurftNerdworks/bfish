@@ -12,7 +12,8 @@ classdef BFishClassTest < matlab.unittest.TestCase
         % Setup for each test
         function setup(testCase)
             % Setup code
-            testCase.BF = BFishClass; % create generic class 
+            testCase.BF = BFishClass; % create generic class
+            testCase.BF.activeLanguage = "EN";
 
         end
     end
@@ -27,15 +28,15 @@ classdef BFishClassTest < matlab.unittest.TestCase
     methods (Test)
         % Test methods
         function listlanguages(testCase)
-            expectedLanguages = string(testCase.BF.LibraryTable.Properties.VariableNames);
+            expectedLanguages = ["EN", "ZH", "HI", "ES", "FR"];
             languages = testCase.BF.languages;
-            testCase.verifyEqual(expectedLanguages, languages, ...
-                "Should return all variables in LibraryTable.")
+            testCase.verifyEqual(languages, expectedLanguages);
 
         end
 
-        function changelanguage(testCase)
-               
+        function changelanguagebycode(testCase)
+            testCase.BF.activeLanguage = "ES";
+            testCase.verifyEqual(testCase.BF.activeLanguage, "ES");
 
         end
 
