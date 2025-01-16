@@ -1,4 +1,8 @@
 classdef BFishClassTest < matlab.unittest.TestCase
+    properties
+        BF BFishClass = BFishClass.empty
+
+    end
 
     methods (TestClassSetup)
         % Shared setup for the entire test class
@@ -9,6 +13,14 @@ classdef BFishClassTest < matlab.unittest.TestCase
         function setup(testCase)
             % Setup code
             testCase.BF = BFishClass; % create generic class 
+
+        end
+    end
+
+    methods (TestMethodTeardown)
+        function closeFigure(testCase)
+            delete(testCase.BF)
+
         end
     end
 
