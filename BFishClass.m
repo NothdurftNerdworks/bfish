@@ -267,7 +267,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             catch err % error when loading
                 % notify error occurred
-                % --- add logging here ---
                 obj.ME = err;
 
             end
