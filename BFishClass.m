@@ -534,8 +534,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             arguments
                 obj BFishClass
                 langCode string {mustBeText}
-                langDisc string {mustBeText}
+                langDisc string {mustBeText} = langCode % just set to language name if not provided
             end
+
             % confirm language not present in library
             isLangPresent = any(strcmp(langCode, obj.languages));
             assert(~isLangPresent, ...
@@ -709,6 +710,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         end % translatestrings
 
+        %% -----------------------------------------------------------------------------------------
         function obj = saveobj(obj)
             % SAVEOBJ deal with listener objects when saving an instance of class
             %
@@ -724,6 +726,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     end
 
     methods (Static)
+        %% -----------------------------------------------------------------------------------------
         function obj = loadobj(obj)
             % LOADOBJ handle details for restoring listeners and such
             %
