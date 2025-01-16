@@ -34,31 +34,37 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
         end
 
-        function changelanguagebycode(testCase)
+        function changelanguage_bycode(testCase)
             testCase.BF.activeLanguage = "ES";
             testCase.verifyEqual(testCase.BF.activeLanguage, "ES");
 
         end
 
-        function changelanguagebyvalue(testCase)
+        function changelanguage_byvalue(testCase)
             testCase.BF.activeLanguage = 2;
             testCase.verifyEqual(testCase.BF.activeLanguage, "ZH");
 
         end
 
-        function changelanguagebydisc(testCase)
+        function changelanguage_bydisc(testCase)
             testCase.BF.activeLanguage = "French";
             testCase.verifyEqual(testCase.BF.activeLanguage, "FR");
 
         end
 
-        function translatewords(testCase)
-            error("not implemented")
+        function translate_strings(testCase)
+            testCase.BF.activeLanguage = "ES";
+            enText = ["one", "two", "three"];
+            esText = ["uno", "dos", "tres"];
+            testCase.verifyEqual(testCase.BF.translate(enText), esText);
 
         end
 
         function preservepadding(testCase)
-            error("not implemented")
+            testCase.BF.activeLanguage = "ES";
+            enText = "  one   ";
+            esText = "  uno   ";
+            testCase.verifyEqual(testCase.BF.translate(enText), esText);
 
         end
 
