@@ -78,8 +78,16 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
         function translate_strings(testCase)
             testCase.BF.activeLanguage = "ES";
-            enText = ["one", "two", "three"];
-            esText = ["uno", "dos", "tres"];
+            enText = ["one" "two" "three"];
+            esText = ["uno" "dos" "tres"];
+            testCase.verifyEqual(testCase.BF.translate(enText), esText);
+
+        end
+
+        function translate_categorical(testCase)
+            testCase.BF.activeLanguage = "ES";
+            enText = categorical({'one','two','three'});
+            esText = categorical({'uno','dos','tres'});
             testCase.verifyEqual(testCase.BF.translate(enText), esText);
 
         end
