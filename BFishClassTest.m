@@ -26,8 +26,16 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
     methods (Test)
         % Test methods
+        function listlanguages(testCase)
+            expectedLanguages = string(testCase.BF.LibraryTable.Properties.VariableNames);
+            languages = testCase.BF.languages;
+            testCase.verifyEqual(expectedLanguages, languages, ...
+                "Should return all variables in LibraryTable.")
+
+        end
+
         function changelanguage(testCase)
-            error("not implemented")
+               
 
         end
 
