@@ -15,10 +15,10 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     end
 
     properties (Dependent)
-        isLibraryLoaded % ??? is this necessary?
         localLanguage string                        % system language code (if detectable)
         languages string                            % string array of languages in current library
         activeLanguage string                       % the language (column) from the LibraryTable currently in use (untyped for flexibility)
+        words string                                % string array of words (phrases) in current library
 
     end
 
@@ -57,13 +57,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         end % BFishClass
 
         %% -----------------------------------------------------------------------------------------
-        function value = get.isLibraryLoaded(obj)
-            value = ~isempty(obj.libraryFilename);
-
-        end % get.isLibraryLoaded
-
-
-        %% -----------------------------------------------------------------------------------------
         function language = get.localLanguage(obj)
             % get.localLanguageCode query the Java subsystem to determine local 2-letter language code.
             %
@@ -94,7 +87,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
         %% -----------------------------------------------------------------------------------------
         function languages = get.languages(obj)
-            % LISTLANGUAGES returns, as a string array, the list of languages in the loaded library
+            % GET.LANGUAGES returns, as a string array, the list of languages in the loaded library
             %
 
             if isempty(obj.LibraryTable)
@@ -106,6 +99,21 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
         end % get.languages
+
+        %% -----------------------------------------------------------------------------------------
+        function words = get.words(obj)
+            % GET.WORDS returns, as a string array, the list of words (phrases) in the loaded library
+            %   uses the *developer* language, i.e. column 1
+
+            if isempty(obj.LibraryTable)
+                words = string([]);
+
+            else
+                words = string(obj.LibraryTable{:,1});
+
+            end
+
+        end
 
         %% -----------------------------------------------------------------------------------------
         function activeLang = get.activeLanguage(obj)
@@ -572,7 +580,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             url = strcat("https://translate.google.com/?", ...
                 "sl=", obj.LibraryTable.Properties.VariableNames{1}, ...
                 "&tl=", requestedLang, ...
-                "&text=", strjoin(obj.LibraryTable{:,1}, "%7C"), ...
+                "&text=", strjoin(obj.words, "%7C"), ...
                 "&op=translate");
 
             % prompt user to input results from webpage
@@ -631,7 +639,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                         [pre, word, post] = preservepadding(part);
 
                         % locate word in library
-                        wordList = obj.LibraryTable{:,1};
+                        wordList = obj.words;
                         idx = find(strcmp(word, wordList), 1); % search for exact word first
                         if isempty(idx) % do case-insensitive search if no exact match
                             idx = find(strcmpi(word, wordList), 1);

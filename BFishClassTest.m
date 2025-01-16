@@ -111,7 +111,7 @@ classdef BFishClassTest < matlab.unittest.TestCase
         function addword(testCase)
             newWord = "PizzaParty";
             testCase.BF.translate(newWord);
-            testCase.verifyEqual(testCase.BF.LibraryTable{end,1}, newWord);
+            testCase.verifyEqual(testCase.BF.words(end), newWord);
 
         end
 
