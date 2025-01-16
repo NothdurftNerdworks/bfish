@@ -69,7 +69,10 @@ classdef BFishClassTest < matlab.unittest.TestCase
         end
 
         function matchcase(testCase)
-            error("not implemented")
+            testCase.BF.activeLanguage = "ES";
+            enText = ["one", "ONE", "One"];
+            esText = ["uno", "UNO", "Uno"];
+            testCase.verifyEqual(testCase.BF.translate(enText), esText)
 
         end
 
