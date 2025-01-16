@@ -12,7 +12,7 @@ classdef BFishClassTest < matlab.unittest.TestCase
         % Setup for each test
         function setup(testCase)
             % Setup code
-            testCase.BF = BFishClass; % create generic class
+            testCase.BF = BFishClass; % create default class
             testCase.BF.activeLanguage = "EN";
 
         end
@@ -49,6 +49,17 @@ classdef BFishClassTest < matlab.unittest.TestCase
         function changelanguage_bydisc(testCase)
             testCase.BF.activeLanguage = "French";
             testCase.verifyEqual(testCase.BF.activeLanguage, "FR");
+
+        end
+
+        function newlanguage_event(testCase)
+            % Add a listener for the event
+            listener = addlistener(testCase.BF, 'NewLanguage', @(src, event) ...
+                testCase.verifyTrue(true, 'Event NewLanguage was triggered'));
+            testCase.addTeardown(@delete, listener)
+
+            % cause 'NewLanguage'
+            testCase.BF.activeLanguage = "ES";
 
         end
 
@@ -123,24 +134,64 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
         end
 
-        function silenterrorevent(testCase)
-            error("not implemented")
+        function silenterror_event(testCase)
+            % Add a listener for the event
+            listener = addlistener(testCase.BF, 'SilentError', @(src, event) ...
+                testCase.verifyTrue(true, 'Event SilentError was triggered'));
+            testCase.addTeardown(@delete, listener)
+
+            % cause 'SilentError'
+            testCase.BF.activeLanguage = 100;
 
         end
 
         function savelibrary(testCase)
-            error("not implemented")
+            % designate test file and confirm it does not already exist
+            saveName = "savetest.csv";
+            assert(~isfile(saveName), "can't test savelibrary method if savefile already exists");
+
+            % save the library
+            testCase.BF.savelibrary(saveName);
+            testCase.addTeardown(@delete, saveName)
+
+            % validate
+            testCase.verifyTrue(isfile(saveName));
 
         end
 
         function loadlibrary(testCase)
-            error("not implemented")
+            % designate test file and confirm it does not already exist
+            saveName = "loadtest.csv";
+            assert(~isfile(saveName), "can't test loadlibrary method if savefile already exists");
+
+            % save the library
+            testCase.BF.savelibrary(saveName);
+            testCase.addTeardown(@delete, saveName)
+
+            % validate
+            testCase.verifyTrue(testCase.BF.loadlibrary(saveName));
 
         end
 
-        function unimplementedTest(testCase)
-            testCase.verifyFail("Unimplemented test");
+        function newlibrary_event(testCase)
+            % designate test file and confirm it does not already exist
+            saveName = "loadtest.csv";
+            assert(~isfile(saveName), "can't test newlibrary event if loadfile already exists");
+
+            % save the library
+            testCase.BF.savelibrary(saveName);
+            testCase.addTeardown(@delete, saveName)
+
+            % Add a listener for the event
+            listener = addlistener(testCase.BF, 'NewLibrary', @(src, event) ...
+                testCase.verifyTrue(true, 'Event NewLibrary was triggered'));
+            testCase.addTeardown(@delete, listener)
+
+            % cause event
+            testCase.BF.loadlibrary(saveName);
+
         end
+
     end
 
 end
