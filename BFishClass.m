@@ -40,11 +40,12 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     end
     
     methods
-        function obj = BFishClass(libraryFilename)
+        function obj = BFishClass(libraryFilename, Options)
             %BFISHCLASS Construct an instance of this class
             %   Detailed explanation goes here
             arguments
                 libraryFilename string = string([])
+                Options.RefreshOnUpdate logical = true
             end
 
             % load library if file provided
@@ -59,8 +60,8 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
 
             end
 
-            % activate listeners
-            obj.refreshOnUpdate = true;
+            % (optionally) activate listeners
+            obj.refreshOnUpdate = Options.RefreshOnUpdate;
 
         end % BFishClass
 
@@ -612,6 +613,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function strings = translatestrings(obj, strings)
             % PROCESS
             %
+
             % work on each string in the array
             for wString = 1:numel(strings)
                 % break strings in to logical parts
