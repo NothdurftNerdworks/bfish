@@ -104,17 +104,22 @@ classdef BFishClassTest < matlab.unittest.TestCase
             testCase.BF.activeLanguage = "ES";
             enText = ["one", "ONE", "One"];
             esText = ["uno", "UNO", "Uno"];
-            testCase.verifyEqual(testCase.BF.translate(enText), esText)
+            testCase.verifyEqual(testCase.BF.translate(enText), esText);
 
         end
 
         function addword(testCase)
-            error("not implemented")
+            newWord = "PizzaParty";
+            testCase.BF.translate(newWord);
+            testCase.verifyEqual(testCase.BF.LibraryTable{end,1}, newWord);
 
         end
 
         function addlanguage(testCase)
-            error("not implemented")
+            newLangName = "Klingon";
+            newLangDisc = "Champions";
+            testCase.BF.addlanguage(newLangName, newLangDisc);
+            testCase.verifyEqual(testCase.BF.languages(end), newLangName);
 
         end
 
