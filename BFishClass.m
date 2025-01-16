@@ -4,7 +4,6 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     
     properties
         isActive logical            = true          % logical, translates when true, pass-through when false
-        refreshOnUpdate logical     = true          % logical, retranslate known GUIs on change when true
 
     end
 
@@ -18,16 +17,18 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
     properties (Dependent)
         localLanguage string                        % system language code (if detectable)
         languages string                            % string array of languages in current library
-        activeLanguage string                       % the language (column) from the LibraryTable currently in use (untyped for flexibility)
+        activeLanguage string                       % the language (column) from the LibraryTable currently in use (untyped for flexibility) (ref: privateActiveLanguage)
         words string                                % string array of words (phrases) in current library
+        refreshOnUpdate logical                     % access logical, retranslate known GUIs on change when true (ref: privateRefreshOnUpdate)
 
     end
 
     properties (Access = private, Hidden = true)
-        thisActiveLanguage string   = string([])    % store the language in use internally
-        knownRootHandles handle     = handle([])    % store handle to root gui objects we've been passed
-        newLanguageListener event.listener
-        newLibraryListener event.listener
+        privateActiveLanguage string    = string([])    % store the language in use internally
+        knownRootHandles handle         = handle([])    % store handle to root gui objects we've been passed
+        newLanguageListener
+        newLibraryListener
+        privateRefreshOnUpdate logical                  % store logical, retranslate known GUIs on change when true
 
     end
 
@@ -59,10 +60,38 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
             % activate listeners
-            obj.newLanguageListener = addlistener(obj, "NewLanguage", @(src,evnt)obj.refreshgui);
-            obj.newLibraryListener = addlistener(obj, "NewLibrary", @(src,evnt)obj.refreshgui);
+            obj.refreshOnUpdate = true;
 
         end % BFishClass
+
+        function set.refreshOnUpdate(obj, tf)
+            if tf
+                isNeeded = isempty(obj.newLanguageListener) || ~isvalid(obj.newLanguageListener);
+                if isNeeded
+                    obj.newLanguageListener = addlistener(obj, "NewLanguage", @(~,~)obj.refreshgui);
+
+                end
+
+                isNeeded = isempty(obj.newLibraryListener) || ~isvalid(obj.newLibraryListener);
+                if isNeeded
+                    obj.newLibraryListener = addlistener(obj, "NewLibrary", @(~,~)obj.refreshgui);
+
+                end
+
+            else
+                delete(obj.newLanguageListener);
+                delete(obj.newLibraryListener);
+
+            end
+
+            obj.privateRefreshOnUpdate = tf;
+
+        end
+
+        function val = get.refreshOnUpdate(obj)
+            val = obj.privateRefreshOnUpdate;
+
+        end
 
         %% -----------------------------------------------------------------------------------------
         function language = get.localLanguage(obj)
@@ -128,7 +157,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             % GET.ACTIVELANGUAGE property get method to designate the language (column) of the LibraryTable to use
             %   dependent property that returns value from private property 'thisActiveLanguage'
 
-            activeLang = obj.thisActiveLanguage;
+            activeLang = obj.privateActiveLanguage;
 
         end % get.activeLanguage(obj)
 
@@ -151,20 +180,20 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                         'BFishClass:set_activeLanguage:numberBeyondLimit', ...
                         sprintf("Requested value: %d is outside LibraryTable range: [1 %d]", newLangSelector, nLanguages));
 
-                    obj.thisActiveLanguage = obj.languages(newLangSelector);
+                    obj.privateActiveLanguage = obj.languages(newLangSelector);
                     isChanged = true;
 
                 else % check against library variable names
                     isValidNameChoice = ismember(upper(newLangSelector), obj.languages);
                     if isValidNameChoice
-                        obj.thisActiveLanguage = upper(newLangSelector);
+                        obj.privateActiveLanguage = upper(newLangSelector);
                         isChanged = true;
 
                     else % check library variable descriptions
                         discIdx = find(strcmpi(newLangSelector, obj.LibraryTable.Properties.VariableDescriptions), 1);
                         isValidDiscChoice = ~isempty(discIdx);
                         if isValidDiscChoice
-                            obj.thisActiveLanguage = obj.languages(discIdx);
+                            obj.privateActiveLanguage = obj.languages(discIdx);
                             isChanged = true;
 
                         else % we are unable to change
@@ -273,7 +302,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % determine active language
                 isCurrentLanguageInLibrary = ~isempty(obj.activeLanguage) && ismember(obj.activeLanguage, obj.languages);
                 if ~isCurrentLanguageInLibrary
-                    obj.thisActiveLanguage = obj.languages(1); % set private property to avoid public set method (& event/listener)
+                    obj.privateActiveLanguage = obj.languages(1); % set private property to avoid public set method (& event/listener)
 
                 end
 
@@ -679,6 +708,32 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end % istag
 
         end % translatestrings
+
+        function obj = saveobj(obj)
+            % SAVEOBJ deal with listener objects when saving an instance of class
+            %
+
+            if obj.refreshOnUpdate % active listeners are present
+                obj.refreshOnUpdate = false; % delete active listeners
+                obj.privateRefreshOnUpdate = true; % tell saved item that we want listeners when restored
+                
+            end
+
+        end % saveobj
+
+    end
+
+    methods (Static)
+        function obj = loadobj(obj)
+            % LOADOBJ handle details for restoring listeners and such
+            %
+
+            if obj.refreshOnUpdate % recreate the listeners
+                obj.refreshOnUpdate = true; % resetting this recreates the listeners
+
+            end
+
+        end % loadobj
 
     end
 
