@@ -205,6 +205,20 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
         end
 
+        function singlehook(testCase)
+            testCase.BF.activeLanguage = "ES";
+
+            f = uifigure("Name", "one", "Visible", "off");
+            pb = uibutton(f, "Text", "two");
+            testCase.addTeardown(@delete, f)
+
+            testCase.BF.attach(f);
+
+            % call second time to confirm no errors
+            testCase.BF.attach(f);
+
+        end
+
     end
 
 end
