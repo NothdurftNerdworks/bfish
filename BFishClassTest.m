@@ -46,6 +46,12 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
         end
 
+        function changelanguagebydisc(testCase)
+            testCase.BF.activeLanguage = "French";
+            testCase.verifyEqual(testCase.BF.activeLanguage, "FR");
+
+        end
+
         function translatewords(testCase)
             error("not implemented")
 
