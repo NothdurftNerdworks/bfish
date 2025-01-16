@@ -439,9 +439,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             end
 
             % some properties can be objects that can have children of their own
-            propsWithChildren = ["Toolbar", "ContextMenu"];
+            propsWithChildren = ["ToolBar", "ContextMenu"];
             for propWithChildren = propsWithChildren
-                isPropPresent = isprop(guiHandle, propWithChildren);
+                isPropPresent = isprop(guiHandle, propWithChildren) && ~isempty(guiHandle.(propWithChildren)) && ~strcmp(guiHandle.(propWithChildren), 'none');
                 if isPropPresent
                     for child = guiHandle.(propWithChildren).Children
                         obj.attach(child);

@@ -192,6 +192,19 @@ classdef BFishClassTest < matlab.unittest.TestCase
 
         end
 
+        function simpleattach(testCase)
+            testCase.BF.activeLanguage = "ES";
+
+            f = uifigure("Name", "one", "Visible", "off");
+            pb = uibutton(f, "Text", "two");
+            testCase.addTeardown(@delete, f)
+
+            testCase.BF.attach(f);
+
+            testCase.verifyTrue(strcmp(pb.Text, "dos")); % strcmp allows char/string comparisons
+
+        end
+
     end
 
 end
