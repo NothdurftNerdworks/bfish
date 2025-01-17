@@ -369,15 +369,32 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
         function refreshgui(obj)
             % REFRESHGUI reprocess the attached GUI(s) with current library and active language
             %
+            for thisHandle = obj.knownRootHandles
+                if isvalid(thisHandle)
+                    obj.attach(thisHandle);
 
-            disp('REFRESH GUI CALLED!')
+                end
+
+            end
 
         end % refreshgui
 
         %% -----------------------------------------------------------------------------------------
-        function isAttached = attach(obj, guiHandle)
+        function isAttached = attach(obj, guiHandle, Options)
             % ATTACH calls HOOK on relevant gui properties and recursively calls ATTACH on component children
             %
+            arguments
+                obj BFishClass
+                guiHandle {ishandle}
+                Options.Recursive logical = false
+            end
+
+            % keep track of new root handles
+            isKnown = ismember(guiHandle, obj.knownRootHandles);
+            if ~isKnown && ~Options.Recursive
+                obj.knownRootHandles = [obj.knownRootHandles guiHandle];
+
+            end
 
             % create list of properties to look for, these can be 'normal'
             % string properties or they can be "Text" objects ('matlab.graphics.primitive.Text')
@@ -414,7 +431,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
             isChildPresent = isprop(guiHandle, "Children") && ~isempty(guiHandle.Children);
             if isChildPresent
                 for child = guiHandle.Children
-                    obj.attach(child);
+                    obj.attach(child, Recursive=true);
 
                 end
 
@@ -426,7 +443,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 isPropPresent = isprop(guiHandle, propWithChildren) && ~isempty(guiHandle.(propWithChildren)) && ~strcmp(guiHandle.(propWithChildren), 'none');
                 if isPropPresent
                     for child = guiHandle.(propWithChildren).Children
-                        obj.attach(child);
+                        obj.attach(child, Recursive=true);
 
                     end
 
@@ -449,6 +466,7 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % add dynamic property
                 dp = guiHandle.addprop(bfPropName);
                 dp.SetObservable = true;
+                dp.AbortSet = true;
 
                 % add listener for change to dynamic property
                 addlistener(guiHandle, bfPropName, 'PostSet', @obj.responder);
@@ -456,6 +474,9 @@ classdef BFishClass < matlab.mixin.SetGetExactNames
                 % translate this component (by changing dev string, triggering
                 % our recently attached listener
                 guiHandle.(bfPropName) = guiHandle.(propName);
+
+            else % just translate
+                guiHandle.(propName) = obj.translate(guiHandle.(bfPropName));
 
             end
 
